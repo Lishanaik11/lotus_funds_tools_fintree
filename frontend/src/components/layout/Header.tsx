@@ -1,7 +1,12 @@
-import { AppBar, Toolbar, Typography, Box } from "@mui/material";
+import { AppBar, Toolbar, Typography, Box, IconButton } from "@mui/material";
+import MenuIcon from "@mui/icons-material/Menu";
 import { useEffect, useState } from "react";
 
-const Header = () => {
+interface HeaderProps {
+  onMenuClick?: () => void;
+}
+
+const Header = ({ onMenuClick }: HeaderProps) => {
   const [now, setNow] = useState(new Date());
 
   useEffect(() => {
@@ -20,9 +25,9 @@ const Header = () => {
         backgroundColor: "#22c55e",
         minHeight: 40,
         justifyContent: "center",
-        // shift header to the right so it doesn't sit under the sidebar
-        ml: "220px",
-        width: "calc(100% - 220px)",
+        // shift header to the right so it doesn't sit under the sidebar (desktop only)
+        ml: { xs: 0, sm: "220px" },
+        width: { xs: "100%", sm: "calc(100% - 220px)" },
       }}
     >
       <Toolbar
@@ -34,20 +39,37 @@ const Header = () => {
           justifyContent: "space-between",
         }}
       >
-        <Typography
-          sx={{
-            fontWeight: 700,
-            fontSize: 16,
-          }}
-        >
-          Recommendations
-        </Typography>
+        <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+          {/* Hamburger menu for mobile */}
+          <IconButton
+            color="inherit"
+            onClick={onMenuClick}
+            sx={{
+              display: { xs: "flex", sm: "none" },
+              p: 0.5,
+            }}
+          >
+            <MenuIcon sx={{ fontSize: 24 }} />
+          </IconButton>
+
+          {/* Page title - visible on all breakpoints now */}
+          <Typography
+            sx={{
+              fontWeight: 700,
+              fontSize: 16,
+              display: "block",
+            }}
+          >
+            Recommendations
+          </Typography>
+        </Box>
 
         <Box sx={{ display: "flex", gap: 1.5, alignItems: "center" }}>
           <Typography
             sx={{
               fontWeight: 700,
               fontSize: 12,
+              display: "block",
             }}
           >
             {formattedDate}
@@ -56,6 +78,7 @@ const Header = () => {
             sx={{
               fontWeight: 700,
               fontSize: 12,
+              display: "block",
             }}
           >
             {formattedTime}
