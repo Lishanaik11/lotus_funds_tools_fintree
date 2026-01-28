@@ -31,10 +31,11 @@ const NewRecommendation = () => {
   const [tradeType, setTradeType] = useState("Intraday");
   const [month, setMonth] = useState("Jan");
   const [date, setDate] = useState(27);
-  const [holdingPeriod, setHoldingPeriod] = useState(5);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [inputValue, setInputValue] = useState("");
   const [suggestion, setSuggestion] = useState("");
+  const [holdingPeriod, setHoldingPeriod] = useState(0);
+  const [radioValue, setRadioValue] = useState(""); // For Short/Long term options
 
   const panelBg = action === "BUY" ? "#eef9ee" : "#fee2e2";
   const panelBorder = action === "BUY" ? "#7ac77a" : SELL_COLOR;
