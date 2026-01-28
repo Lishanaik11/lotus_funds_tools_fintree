@@ -3,7 +3,8 @@ import AppLayout from "../components/layout/AppLayout";
 import Dashboard from "../pages/Dashboard";
 
 import Recommendations from "../pages/Recomendation";
-import NotFound from "../pages/NotFound";
+import Performance from "../pages/Performance";
+// import NotFound from "../pages/NotFound";
 
 const AppRoutes = () => {
   return (
@@ -13,11 +14,15 @@ const AppRoutes = () => {
         <Route path="/" element={<Dashboard />} />
        
         <Route path="/recommendations" element={<Recommendations />} />
+        <Route path="/performance" element={<Performance />} />
       </Route>
 
+     
+      
+
       {/* Pages without sidebar (optional) */}
-      <Route path="*" element={<NotFound />} />
-    </Routes>
+     {/* <Route path="*" element={<NotFound />} /> */}
+    </Routes> 
   );
 };
 
