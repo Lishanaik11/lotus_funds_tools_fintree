@@ -1,21 +1,7 @@
-import {
-  Box,
-  Button,
-  MenuItem,
-  Paper,
-  Select,
-  Typography,
-  ToggleButton,
-  ToggleButtonGroup,
-  FormControl,
-  InputLabel,
-  OutlinedInput,
-  TextField,
-  Switch,
-  Slider,
-} from "@mui/material";
+import {Box,Button,MenuItem,Paper,Select,Typography,ToggleButton,ToggleButtonGroup,TextField,Switch,Slider,Autocomplete} from "@mui/material";
 import CloudUploadOutlinedIcon from "@mui/icons-material/CloudUploadOutlined";
 import { useRef, useState } from "react";
+import { STOCK_DATA } from "../assets/stocks";
 
 const BUY_COLOR = "#22c55e";
 const SELL_COLOR = "#ef4444";
@@ -46,8 +32,9 @@ const NewRecommendation = () => {
   const [month, setMonth] = useState("Jan");
   const [date, setDate] = useState(27);
   const [holdingPeriod, setHoldingPeriod] = useState(5);
-  const [file, setFile] = useState<File | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const [inputValue, setInputValue] = useState("");
+  const [suggestion, setSuggestion] = useState("");
 
   const panelBg = action === "BUY" ? "#eef9ee" : "#fee2e2";
   const panelBorder = action === "BUY" ? "#7ac77a" : SELL_COLOR;
@@ -63,7 +50,6 @@ const NewRecommendation = () => {
     <Box
       sx={{
         display: "grid",
-        // Stack on mobile, side-by-side on desktop
         gridTemplateColumns: { xs: "1fr", lg: "3fr 1.5fr" },
         gap: 2,
         height: { lg: "100vh", xs: "auto" },
@@ -74,25 +60,18 @@ const NewRecommendation = () => {
     >
       {/* LEFT PANEL */}
       <Paper
-  sx={{
-    p: { xs: 1.5, sm: 2 },
-    backgroundColor: panelBg,
-    border: `1px solid ${panelBorder}`,
-    borderRadius: 1,
-    display: "flex",
-    flexDirection: "column",
-    
-    // THE FIX:
-    // On mobile (xs), stack naturally from the top.
-    // On desktop (lg), stretch to fill the 100vh height.
-    justifyContent: { xs: "flex-start", lg: "space-between" },
-    
-    // On mobile, let the height be as tall as the content needs.
-    // On desktop, lock it to the screen height.
-    height: { xs: "auto", lg: "85%" },
-    gap: { xs: 1, lg: 0 }, // Add a small gap on mobile since space-between is off
-  }}
->
+      sx={{
+        p: { xs: 1.5, sm: 2 },
+        backgroundColor: panelBg,
+        border: `1px solid ${panelBorder}`,
+        borderRadius: 1,
+        display: "flex",
+        flexDirection: "column",
+        justifyContent: { xs: "flex-start", lg: "space-between" },
+        height: { xs: "auto", lg: "85%" },
+        gap: { xs: 1, lg: 0 },
+        }}
+        >
         <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", mb: 1 }}>
           <Typography variant="subtitle1" fontWeight={700} sx={{ fontSize: { xs: "0.9rem", sm: "1.1rem" } }}>
             New Recommendation
@@ -145,33 +124,33 @@ const NewRecommendation = () => {
 
         {/* Stock & Trade Type Row */}
         <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 1, gap: 1 }}>
-  {/* STOCK / INDEX GROUP */}
-  <ToggleButtonGroup
-    size="small"
-    exclusive
-    value={exchange}
-    onChange={(_, val) => val && setExchange(val)}
-    sx={{
-      backgroundColor: "#eef2f7",
-      "& .MuiToggleButtonGroup-grouped": {
-        border: "none",
-        px: 1.5,
-        fontSize: "0.65rem",
-        fontWeight: 700,
-        color: "#6b7280", // Default text color
-        "&.Mui-selected": {
-          backgroundColor: "#4f6bed", // Blue color when selected
-          color: "#fff",             // White text when selected
-          "&:hover": {
-            backgroundColor: "#3b51c5", // Slightly darker blue on hover
-          },
-        },
-      },
-    }}
-  >
-    <ToggleButton value="STOCK">STOCK</ToggleButton>
-    <ToggleButton value="INDEX">INDEX</ToggleButton>
-  </ToggleButtonGroup>
+          {/* STOCK / INDEX GROUP */}
+          <ToggleButtonGroup
+          size="small"
+          exclusive
+          value={exchange}
+          onChange={(_, val) => val && setExchange(val)}
+          sx={{
+            backgroundColor: "#eef2f7",
+            "& .MuiToggleButtonGroup-grouped": {
+            border: "none",
+            px: 1.5,
+            fontSize: "0.65rem",
+            fontWeight: 700,
+            color: "#6b7280",
+            "&.Mui-selected": {
+              backgroundColor: "#4f6bed",
+              color: "#fff",           
+            "&:hover": {
+              backgroundColor: "#3b51c5", 
+               },
+              },
+            },
+          }}
+          >
+            <ToggleButton value="STOCK">STOCK</ToggleButton>
+            <ToggleButton value="INDEX">INDEX</ToggleButton>
+          </ToggleButtonGroup>
 
   {/* TRADE TYPE GROUP */}
   <Box sx={{ overflowX: "auto" }}>
@@ -190,8 +169,8 @@ const NewRecommendation = () => {
           fontWeight: 700,
           color: "#6b7280",
           "&.Mui-selected": {
-            backgroundColor: "#4f6bed", // Blue color when selected
-            color: "#fff",             // White text when selected
+            backgroundColor: "#4f6bed", 
+            color: "#fff",
             "&:hover": {
               backgroundColor: "#3b51c5",
             },
@@ -202,15 +181,84 @@ const NewRecommendation = () => {
       <ToggleButton value="Intraday">Intraday</ToggleButton>
       <ToggleButton value="BTST">BTST</ToggleButton>
       <ToggleButton value="STBT">STBT</ToggleButton>
-      <ToggleButton value="Short Term">Short</ToggleButton>
-      <ToggleButton value="Long Term">Long</ToggleButton>
+      <ToggleButton value="Short Term">Short Term</ToggleButton>
+      <ToggleButton value="Long Term">Long Term</ToggleButton>
     </ToggleButtonGroup>
   </Box>
 </Box>
 
         {/* Script Row */}
         <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1, mb: 1 }}>
-          <TextField size="small" placeholder="Script Name/Symbol" variant="outlined" sx={{ flexGrow: 1, minWidth: "150px" }} />
+          <Box sx={{ position: 'relative', display: 'flex', flexGrow: 1 }}>
+  {/* GHOST LAYER: Only shows when you have a suggestion and haven't finished typing it */}
+  {suggestion && suggestion.toLowerCase().startsWith(inputValue.toLowerCase()) && (
+    <Box sx={{
+        position: 'absolute', 
+        top: 9, 
+        left: 14,
+        color: 'rgba(0, 0, 0, 0.3)', 
+        pointerEvents: 'none',
+        fontSize: '1rem', 
+        whiteSpace: 'pre', 
+        zIndex: 0
+      }}>
+      <span style={{ color: 'transparent' }}>{inputValue}</span>
+      {suggestion.slice(inputValue.length)}
+    </Box>
+  )}
+
+  <Autocomplete
+    freeSolo
+    // Only open the dropdown if there are 2 or more matches
+    open={(() => {
+        const matches = STOCK_DATA[exchangeType as keyof typeof STOCK_DATA]?.filter(
+          (s) => s.toLowerCase().startsWith(inputValue.toLowerCase())
+        ) || [];
+        return inputValue.length > 0 && matches.length > 1;
+    })()}
+    
+    options={STOCK_DATA[exchangeType as keyof typeof STOCK_DATA] || []}
+    inputValue={inputValue}
+    sx={{ 
+        flexGrow: 1, 
+        zIndex: 1, 
+        '& .MuiOutlinedInput-root': { backgroundColor: 'transparent' } 
+    }}
+    
+    onInputChange={(event, newInputValue) => {
+      setInputValue(newInputValue);
+      
+      const currentMatches = STOCK_DATA[exchangeType as keyof typeof STOCK_DATA]?.filter(
+        (s) => s.toLowerCase().startsWith(newInputValue.toLowerCase())
+      ) || [];
+
+      // If matches exist, the first one is our "Ghost"
+      if (newInputValue.length > 0 && currentMatches.length > 0) {
+        setSuggestion(currentMatches[0]);
+      } else {
+        setSuggestion("");
+      }
+    }}
+
+    onKeyDown={(event) => {
+      // TAB KEY: Fills the ghost suggestion immediately
+      if (event.key === 'Tab' && suggestion) {
+        setInputValue(suggestion);
+        setSuggestion("");
+        event.preventDefault(); 
+      }
+    }}
+
+    renderInput={(params) => (
+      <TextField 
+        {...params} 
+        size="small"
+        placeholder={inputValue ? "" : "Script Name/Symbol"} 
+        variant="outlined" 
+      />
+    )}
+  />
+</Box>
           <Box sx={{ display: "flex", gap: 1, flexGrow: { xs: 1, sm: 0 } }}>
             <Select size="small" value={month} onChange={(e) => setMonth(e.target.value)} sx={{ flexGrow: 1, minWidth: 70, height: 32, fontSize: '0.8rem' }}>
               {["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"].map(m => <MenuItem key={m} value={m}>{m}</MenuItem>)}
