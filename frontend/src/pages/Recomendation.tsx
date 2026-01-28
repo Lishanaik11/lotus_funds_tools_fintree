@@ -469,7 +469,7 @@ const NewRecommendation = () => {
 >
   Generate & Publish
 </Button>
-</Paper>
+      </Paper>
 
       {/* RIGHT PANEL */}
       <Box>
