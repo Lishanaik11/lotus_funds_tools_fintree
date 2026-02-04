@@ -15,6 +15,7 @@ const AppRoutes = () => {
        
         <Route path="/recommendations" element={<Recommendations />} />
         <Route path="/performance" element={<Performance />} />
+        
       </Route>
 
      
