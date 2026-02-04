@@ -254,15 +254,3 @@
 // };
 
 // export default Sidebar;
-
-import SidebarCommon from "../common/Sidebar";
-import type { SidebarProps as CommonSidebarProps } from "../common/Sidebar";
-import { appSidebarItems } from "../../config/sidebarItems";
-
-type SidebarProps = Omit<CommonSidebarProps, "items">;
-
-const Sidebar = (props: SidebarProps) => {
-  return <SidebarCommon {...props} items={appSidebarItems} />;
-};
-
-export default Sidebar;
