@@ -432,6 +432,7 @@ const NewRecommendation = () => {
               }}
               renderInput={(params) => (
                 <TextField
+                  required
                   {...params}
                   size="small"
                   placeholder={inputValue ? "" : "Script Name/Symbol"}
@@ -473,9 +474,9 @@ const NewRecommendation = () => {
 
         {/* Prices Row */}
         <Box sx={{ display: "flex", flexDirection: { xs: "column", sm: "row" }, gap: 1, mb: 1 }}>
-          <TextField label="Entry" size="small" type="number" value={entry} onChange={handlePriceChange(setEntry)} sx={{ ...transparentInputSx, flex: 1 }} />
-          <TextField label="Target" size="small" type="number" value={target} onChange={handlePriceChange(setTarget)} sx={{ ...transparentInputSx, flex: 1 }} />
-          <TextField label="Stop Loss" size="small" type="number" value={stopLoss} onChange={handlePriceChange(setStopLoss)} sx={{ ...transparentInputSx, flex: 1 }} />
+          <TextField required label="Entry" size="small" type="number" value={entry} onChange={handlePriceChange(setEntry)} sx={{ ...transparentInputSx, flex: 1 }} />
+          <TextField required label="Target" size="small" type="number" value={target} onChange={handlePriceChange(setTarget)} sx={{ ...transparentInputSx, flex: 1 }} />
+          <TextField required label="Stop Loss" size="small" type="number" value={stopLoss} onChange={handlePriceChange(setStopLoss)} sx={{ ...transparentInputSx, flex: 1 }} />
         </Box>
 
         {/* Switched Options Row */}
@@ -650,6 +651,7 @@ const NewRecommendation = () => {
             groupBy={(option) => option.group}
             renderInput={(params) => (
               <TextField
+                required
                 {...params}
                 placeholder="Select or search underlying study"
                 variant="outlined"
@@ -678,9 +680,10 @@ const NewRecommendation = () => {
 
         {/* Remarks & Upload */}
         <Box sx={{ display: "flex", flexDirection: { xs: "column", sm: "row" }, gap: 1.5, mb: 2 }}>
-          <TextField multiline rows={2} placeholder="Research Analyst's Remarks" sx={{ flexGrow: 1 }} />
+          <TextField required multiline rows={2} placeholder="Research Analyst's Remarks" sx={{ flexGrow: 1 }} />
           <Box sx={{ display: "flex", flexDirection: "column", gap: 1, minWidth: { xs: "100%", sm: 160 } }}>
             <input
+              required
               type="file"
               ref={fileInputRef}
               onChange={handleFileChange}
