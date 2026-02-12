@@ -24,6 +24,7 @@ const AppRoutes = () => {
         <Route path="/" element={<Dashboard />} />
         <Route path="/recommendations" element={<Recommendations />} />
         <Route path="/performance" element={<Performance />} />
+        
       </Route>
 
       {/* Automation layout with its own sidebar/header */}
