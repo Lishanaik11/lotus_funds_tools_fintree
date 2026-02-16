@@ -19,12 +19,12 @@ const Header = ({ onMenuClick, items }: HeaderProps) => {
       location.pathname.toLowerCase().startsWith(item.path.toLowerCase())
     );
 
-    // If we are at just "/automation", default to Afternoon
-    if (!match && location.pathname.toLowerCase() === "/automation") {
-      return "Afternoon";
+    // If we are at just "/admin", default to Dashboard
+    if (!match && location.pathname.toLowerCase() === "/admin") {
+      return "Dashboard";
     }
 
-    return match?.label ?? "Automation";
+    return match?.label ?? "Admin";
   }, [items, location.pathname]);
 
   useEffect(() => {
