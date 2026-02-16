@@ -25,7 +25,7 @@
       "expiry": "January",
       "entry": 1627.4,
       "exit": 1613.6,
-      "status": "Closed",
+      "status": "Active",
       "profitLoss": -5520
     },
     {
@@ -67,7 +67,7 @@
       "expiry": "January",
       "entry": 1627.4,
       "exit": 1613.6,
-      "status": "Closed",
+      "status": "Active",
       "profitLoss": -5520
     },
     {
@@ -95,7 +95,7 @@
       "expiry": "February",
       "entry": 412.5,
       "exit": 398.0,
-      "status": "Closed",
+      "status": "Active",
       "profitLoss": 725
     },
     {
