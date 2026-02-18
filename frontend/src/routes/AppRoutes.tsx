@@ -14,20 +14,31 @@ import Weekly from "../pages_automation/Weekly";
 import AdminApproval from "../pages_admin/AdminApproval";
 import AdminRecommendations from "../pages_admin/AdminRecommendations";
 import AdminDashboard from "../pages_admin/AdminDashboard";
-// import NotFound from "../pages/NotFound";
+
+// --- NEW IMPORTS FOR MORNING REPORT ---
+import MorningReportBuilder from "../morning-report/MorningReportBuilder";
+import MorningReport from "../morning-report/MorningReport";
+import Logotheme from "../morning-report/Logotheme";
+import Generator from "../morning-report/Generator";
 
 const AppRoutes = () => {
   return (
     <Routes>
-      {/* ALL pages that need sidebar go here */}
+      {/* 1. Standard Layout Pages */}
       <Route element={<AppLayout />}>
         <Route path="/" element={<Dashboard />} />
         <Route path="/recommendations" element={<Recommendations />} />
         <Route path="/performance" element={<Performance />} />
-        
       </Route>
 
-      {/* Automation layout with its own sidebar/header */}
+      {/* 2. Morning Report Workflow (The files you just created) */}
+      {/* I am putting these OUTSIDE of AppLayout so they take the full screen */}
+      <Route path="/morning-report-builder" element={<MorningReportBuilder />} />
+      <Route path="/morning-report-view" element={<MorningReport />} />
+      <Route path="/logo-theme" element={<Logotheme />} />
+      <Route path="/email-generator" element={<Generator />} />
+
+      {/* 3. Automation layout */}
       <Route path="/automation" element={<AutomationLayout />}>
         <Route index element={<Afternoon />} />
         <Route path="Afternoon" element={<Afternoon />} />
@@ -36,18 +47,16 @@ const AppRoutes = () => {
         <Route path="Special" element={<Special />} />
         <Route path="Weekly" element={<Weekly />} />
       </Route>
+
       <Route path="/signup" element={<Signup />} />
 
-      {/* Admin layout */}
+      {/* 4. Admin layout */}
       <Route path="/admin/*" element={<AdminLayout />}>
         <Route index element={<AdminDashboard />} />
         <Route path="dashboard" element={<AdminDashboard />} />
         <Route path="recommendations" element={<AdminRecommendations />} />
         <Route path="approval" element={<AdminApproval />} />
       </Route>
-
-      {/* Pages without sidebar (optional) */}
-      {/* <Route path="*" element={<NotFound />} /> */}
     </Routes>
   );
 };
