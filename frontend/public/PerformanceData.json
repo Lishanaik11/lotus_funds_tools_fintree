@@ -1,0 +1,15 @@
+{
+	"metrics": {
+		"total": 12,
+		"accuracy": 71,
+		"strike": 27,
+		"rr": 138.7,
+		"active": 1,
+		"exited": 11,
+		"profit": 10,
+		"adverse": 1,
+		"sl": 0,
+		"early": 38,
+		"last": ["l", "l", "g", "r", "g", "g", "g", "g", "g", "g"]
+	}
+}

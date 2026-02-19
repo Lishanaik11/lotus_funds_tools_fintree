@@ -1,4 +1,5 @@
 import { Typography, Paper } from "@mui/material";
+import RecommendationHistory from "./common/RecommendationHistory";
 
 const Dashboard = () => {
   return (
@@ -9,6 +10,7 @@ const Dashboard = () => {
       <Typography sx={{ mt: 1 }}>
         This is your dashboard.
       </Typography>
+      <RecommendationHistory statusFilter="active" />
     </Paper>
   );
 };

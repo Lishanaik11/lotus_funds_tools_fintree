@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import {
   Box,
   Grid,
@@ -9,23 +9,36 @@ import {
 } from "@mui/material";
 import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
 import ArrowForwardIosIcon from "@mui/icons-material/ArrowForwardIos";
+import RecommendationHistory from "./common/RecommendationHistory";
+
+interface PerformanceMetrics {
+  total: number;
+  accuracy: number;
+  strike: number;
+  rr: number;
+  active: number;
+  exited: number;
+  profit: number;
+  adverse: number;
+  sl: number;
+  early: number;
+  last: string[];
+}
 
 const Performance: React.FC = () => {
-  const metrics = {
-    total: 12,
-    accuracy: 91,
-    strike: 27,
-    rr: 138.7,
-    active: 1,
-    exited: 11,
-    profit: 10,
-    adverse: 1,
-    sl: 0,
-    early: 38,
-    last: ["l", "l", "g", "r", "g", "g", "g", "g", "g", "g"],
-  };
+  const [metrics, setMetrics] = useState<PerformanceMetrics | null>(null);
 
-  const BigCard = ({ title, value, green = false }: any) => (
+  useEffect(() => {
+    fetch("/PerformanceData.json")
+      .then((res) => res.json())
+      .then((json) => {
+        const incoming = json.metrics ?? json;
+        setMetrics(incoming);
+      })
+      .catch((err) => console.error("Error fetching performance data:", err));
+  }, []);
+
+  const BigCard = ({ title, value, green = false, red = false }: any) => (
     <Paper sx={cardStyle}>
       <Box display="flex" justifyContent="space-between">
         <Typography fontSize="0.875rem">{title}</Typography>
@@ -36,7 +49,7 @@ const Performance: React.FC = () => {
         <Typography
           fontSize="3rem"
           fontWeight={700}
-          color={green ? "#16a34a" : "#000"}
+          color={green ? "#16a34a" : red ? "#dc2626" : "#000"}
         >
           {value}
         </Typography>
@@ -99,7 +112,7 @@ const Performance: React.FC = () => {
         <InfoOutlinedIcon sx={{ fontSize: "1rem", color: "#999" }} />
       </Box>
       <Box display="flex" gap={0.9} mt={2}>
-        {metrics.last.map((s, i) => {
+        {metrics?.last.map((s, i) => {
           let bg = "#22c55e";
           if (s === "r") bg = "#ef4444";
           if (s === "l") bg = "#86efac";
@@ -119,6 +132,29 @@ const Performance: React.FC = () => {
       </Box>
     </Paper>
   );
+
+  if (!metrics) {
+    return (
+      <Box sx={{ p: 3, backgroundColor: "#fff" }}>
+        <Typography fontSize="1.625rem" fontWeight={700} mb={3}>
+          Performance
+        </Typography>
+        <Paper
+          sx={{
+            p: 2.5,
+            borderRadius: "0.1875rem",
+            border: "1px solid #eee",
+            backgroundColor: "#fff",
+            boxShadow: "none",
+          }}
+        >
+          <Typography fontSize="0.875rem" color="text.secondary">
+            Loading performance metrics...
+          </Typography>
+        </Paper>
+      </Box>
+    );
+  }
 
   return (
     <Box sx={{ p: 3, backgroundColor: "#fff" }}>
@@ -155,7 +191,12 @@ const Performance: React.FC = () => {
           <Grid size={{ xs: 12, md: 3 }}>
             <Grid container spacing={2}>
               <Grid size={12}>
-                <BigCard title="Accuracy" value={`${metrics.accuracy}%`} green />
+                <BigCard
+                  title="Accuracy"
+                  value={`${metrics.accuracy}%`}
+                  green={metrics.accuracy >= 80}
+                  red={metrics.accuracy < 80}
+                />
               </Grid>
               <Grid size={6}>
                 <SmallCard title="Profitable" value={metrics.profit} green />
@@ -194,6 +235,8 @@ const Performance: React.FC = () => {
           </Grid>
         </Grid>
       </Paper>
+
+      <RecommendationHistory />
     </Box>
   );
 };

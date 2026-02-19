@@ -2,6 +2,7 @@ import {
   Autocomplete,
   Box,
   Button,
+  FormControl,
   FormControlLabel,
   MenuItem,
   Paper,
@@ -20,8 +21,6 @@ import {
   TableHead,
   TableRow,
   CircularProgress,
-  FormControl,
-  FormHelperText
 } from "@mui/material";
 import CloudUploadOutlinedIcon from "@mui/icons-material/CloudUploadOutlined";
 import { useRef, useState, useEffect, useMemo } from "react";
@@ -33,7 +32,7 @@ import {
   getRecentStudies,
 } from "../assets/UnderlyingStudy";
 import type { StudyOption } from "../assets/UnderlyingStudy";
-
+import axios from "axios";
 const BUY_COLOR = "#22c55e";
 const SELL_COLOR = "#ef4444";
 
@@ -63,6 +62,26 @@ const NewRecommendation = () => {
   const [underlyingStudyValue, setUnderlyingStudyValue] = useState<StudyOption | null>(null);
   const [underlyingStudyInput, setUnderlyingStudyInput] = useState("");
   const [recentStudyOptions, setRecentStudyOptions] = useState<StudyOption[]>([]);
+  // 🔹 Symbol
+  const [symbol, setSymbol] = useState("SYM");
+  const [display_name, setDisplay_name] = useState();
+  // 🔹 Entry Range
+  const [entryLow, setEntryLow] = useState("");
+  const [entryUpper, setEntryUpper] = useState("");
+
+  // 🔹 Secondary Targets
+  const [target2, setTarget2] = useState("");
+  const [target3, setTarget3] = useState("");
+
+  // 🔹 Secondary Stoploss
+  const [stopLoss2, setStopLoss2] = useState("");
+  const [stopLoss3, setStopLoss3] = useState("");
+
+  // 🔹 Holding Period
+  const [holdingPeriod, setHoldingPeriod] = useState(1);
+
+  // 🔹 Remarks
+  const [remark, setRemark] = useState("");
 
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
@@ -91,6 +110,117 @@ const NewRecommendation = () => {
     "Secondary Target": false,
     "Stop Loss 2": false,
   });
+
+
+
+  const handleSubmit = async () => {
+    try {
+      const token = localStorage.getItem("token");
+
+      if (!token) {
+        alert("Please login again");
+        return;
+      }
+      const finalDisplayName =
+        suggestion &&
+          suggestion.toLowerCase().startsWith(inputValue.toLowerCase())
+          ? suggestion
+          : inputValue;
+
+      const payload = {
+        exchange_type: exchangeType,
+        market_type: exchange,
+
+        // ✅ Hardcoded for now
+        symbol: "SYM",
+        display_name: finalDisplayName,
+
+        action,
+        call_type: callType,
+        trade_type: tradeType,
+
+        // ✅ Use correct state name
+        expiry_date: expiry || null,
+
+        entry_price: entry || null,
+        entry_price_low: null,
+        entry_price_upper: null,
+
+        target_price: target || null,
+        target_price_2: null,
+        target_price_3: null,
+
+        stop_loss: stopLoss || null,
+        stop_loss_2: null,
+        stop_loss_3: null,
+
+        holding_period: 1, // temporary
+
+        rationale,
+        underlying_study: underlyingStudyValue?.label || null,
+
+        is_algo: false,
+        has_vested_interest: false,
+        research_remarks: null
+      };
+
+
+      const res = await axios.post(
+        import.meta.env.VITE_API_URL + "/api/research/calls",
+        payload,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+
+
+      // Optimistically update the list
+      const newRecommendation = {
+        id: res.data.id,
+        created_at: res.data.created_at,
+        status: "PUBLISHED",
+        exchange: exchangeType,
+        instrument: exchange, // originally market_type
+        symbol: "SYM",
+        name: finalDisplayName,
+        action,
+        call_type: callType,
+        trade_type: tradeType,
+        expiry_date: expiry || null,
+        entry: {
+          low: null,
+          ideal: entry || null,
+          high: null,
+        },
+        targets: [target].filter(Boolean),
+        stop_losses: [stopLoss].filter(Boolean),
+        holding_period: 1,
+        rationale,
+        underlying_study: underlyingStudyValue?.label || null,
+        flags: {
+          algo: false,
+          vested_interest: false,
+        },
+        remarks: null,
+      };
+
+      setRecommendations((prev) => [newRecommendation, ...prev]);
+
+      alert("Research Call Created ✅");
+
+
+    } catch (err: any) {
+      console.error(err);
+      alert(err?.response?.data?.message || "Error creating call");
+    }
+
+
+
+  };
+
 
   const handleToggle = (label: string) => {
     setSwitches((prev) => ({ ...prev, [label]: !prev[label as keyof typeof switches] }));
@@ -194,24 +324,41 @@ const NewRecommendation = () => {
   const [recommendations, setRecommendations] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const DATA_SOURCE = "/data.json";
+  const DATA_SOURCE =
+    import.meta.env.VITE_API_URL + "/api/research/calls/my";
 
   useEffect(() => {
     const fetchRecommendations = async () => {
       try {
         setLoading(true);
-        const response = await fetch(DATA_SOURCE);
+
+        const token = localStorage.getItem("token");
+
+        const response = await fetch(DATA_SOURCE, {
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+        });
+
+        if (!response.ok) {
+          throw new Error("Unauthorized or failed request");
+        }
+
         const data = await response.json();
-        // Handle both single object and array responses
+
         setRecommendations(Array.isArray(data) ? data : [data]);
+
       } catch (error) {
         console.error("Failed to fetch recommendations:", error);
       } finally {
         setLoading(false);
       }
     };
+
     fetchRecommendations();
   }, []);
+
 
   // 1. EXIT FUNCTION (Removes the item from the list)
   const handleExit = (id: string) => {
@@ -249,21 +396,50 @@ const NewRecommendation = () => {
   // Temporary
   const [wasValidated, setWasValidated] = useState(false);
   const validateAndPublish = (event) => {
-  event.preventDefault();
-  setWasValidated(true);
+    event.preventDefault();
+    setWasValidated(true);
 
-  // Check standard inputs via form
-  const form = event.currentTarget.closest('form');
-  const isFormValid = form.checkValidity();
-  
-  // Check our Radio manually
-  const isRadioValid = radioValue !== "";
+    // Check standard inputs via form
+    const form = event.currentTarget.closest('form');
+    const isFormValid = form.checkValidity();
 
-  if (isFormValid && isRadioValid) {
-    handlePublish();
-    setWasValidated(false); 
-  }
-};
+    // Check our Radio manually
+    const isRadioValid = radioValue !== "";
+
+    if (isFormValid && isRadioValid) {
+      handlePublish();
+      setWasValidated(false);
+    }
+  };
+
+
+  /// populate 
+  const populateForm = () => {
+    setExchangeType("NSE");
+    setExchange("STOCK");
+    setAction("BUY");
+    setCallType("Cash");
+    setTradeType("Intraday");
+
+    setEntry("250");
+    setTarget("270");
+    setStopLoss("240");
+
+    setExpiry("2026-03-28");
+
+    setRationale("Breakout above resistance");
+    setUnderlyingStudyValue({
+      label: "RSI + Volume Confirmation",
+      value: "rsi_volume"
+    });
+
+    console.log("Form Populated ✅");
+  };
+  useEffect(() => {
+    (window as any).populateForm = populateForm;
+  }, []);
+
+
 
   return (
     <Box
@@ -278,8 +454,8 @@ const NewRecommendation = () => {
     >
       {/* LEFT PANEL */}
       <Paper
-      component= "form"
-      noValidate
+        component="form"
+        noValidate
         sx={{
           p: { xs: 1.5, sm: 2 },
           backgroundColor: panelBg,
@@ -291,17 +467,17 @@ const NewRecommendation = () => {
           minHeight: "100%",
           gap: 1.5,
           "& .MuiTextField-root": {
-      "& .MuiOutlinedInput-root": {
-        ...(wasValidated && {
-          "& input:invalid": {
-            "& ~ .MuiOutlinedInput-notchedOutline": {
-              borderColor: "red !important",
-              borderWidth: "2px",
+            "& .MuiOutlinedInput-root": {
+              ...(wasValidated && {
+                "& input:invalid": {
+                  "& ~ .MuiOutlinedInput-notchedOutline": {
+                    borderColor: "red !important",
+                    borderWidth: "2px",
+                  }
+                }
+              })
             }
           }
-        })
-      }
-    }
         }}
       >
         <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", mb: 1 }}>
@@ -584,50 +760,50 @@ const NewRecommendation = () => {
         >
           {/* TOP PART: Holding Period */}
           <Box sx={{ width: "100%" }}>
-            <FormControl 
-  fullWidth 
-  error={wasValidated && !radioValue && tradeType !== "Intraday"}
-  sx={{ mt: 1 }}
->
-            <Typography sx={{ fontSize: '0.7rem', fontWeight: 700, mb: 0.5 }}>Holding Period</Typography>
+            <FormControl
+              fullWidth
+              error={wasValidated && !radioValue && tradeType !== "Intraday"}
+              sx={{ mt: 1 }}
+            >
+              <Typography sx={{ fontSize: '0.7rem', fontWeight: 700, mb: 0.5 }}>Holding Period</Typography>
 
-            {/* Intraday Logic */}
-            {tradeType === "Intraday" && (
-              <RadioGroup row value="0">
-                <FormControlLabel value="0" control={<Radio size="small" color="primary" />} label={<Typography sx={{ fontSize: '0.65rem' }}>0</Typography>} checked={true} />
-              </RadioGroup>
-            )}
+              {/* Intraday Logic */}
+              {tradeType === "Intraday" && (
+                <RadioGroup row value="0">
+                  <FormControlLabel value="0" control={<Radio size="small" color="primary" />} label={<Typography sx={{ fontSize: '0.65rem' }}>0</Typography>} checked={true} />
+                </RadioGroup>
+              )}
 
-            {/* BTST/STBT Logic */}
-            {(tradeType === "BTST" || tradeType === "STBT") && (
-              <RadioGroup row value={radioValue} onChange={(e) => setRadioValue(e.target.value)}>
-                <FormControlLabel value="0" control={<Radio size="small" color="primary" />} label={<Typography sx={{ fontSize: '0.65rem' }}>0</Typography>} />
-                <FormControlLabel value="1" control={<Radio size="small" color="primary" />} label={<Typography sx={{ fontSize: '0.65rem' }}>1</Typography>} />
-              </RadioGroup>
-            )}
+              {/* BTST/STBT Logic */}
+              {(tradeType === "BTST" || tradeType === "STBT") && (
+                <RadioGroup row value={radioValue} onChange={(e) => setRadioValue(e.target.value)}>
+                  <FormControlLabel value="0" control={<Radio size="small" color="primary" />} label={<Typography sx={{ fontSize: '0.65rem' }}>0</Typography>} />
+                  <FormControlLabel value="1" control={<Radio size="small" color="primary" />} label={<Typography sx={{ fontSize: '0.65rem' }}>1</Typography>} />
+                </RadioGroup>
+              )}
 
-            {/* Short Term Logic */}
-            {tradeType === "Short Term" && (
-              <RadioGroup row value={radioValue} onChange={(e) => setRadioValue(e.target.value)}>
-                <FormControlLabel value="7 Days" control={<Radio size="small" />} label={<Typography sx={{ fontSize: '0.65rem' }}>Upto 7 Days</Typography>} />
-                <FormControlLabel value="30 Days" control={<Radio size="small" />} label={<Typography sx={{ fontSize: '0.65rem' }}>Upto 30 Days</Typography>} />
-                <FormControlLabel value="90 Days" control={<Radio size="small" />} label={<Typography sx={{ fontSize: '0.65rem' }}>Upto 90 Days</Typography>} />
-              </RadioGroup>
-            )}
+              {/* Short Term Logic */}
+              {tradeType === "Short Term" && (
+                <RadioGroup row value={radioValue} onChange={(e) => setRadioValue(e.target.value)}>
+                  <FormControlLabel value="7 Days" control={<Radio size="small" />} label={<Typography sx={{ fontSize: '0.65rem' }}>Upto 7 Days</Typography>} />
+                  <FormControlLabel value="30 Days" control={<Radio size="small" />} label={<Typography sx={{ fontSize: '0.65rem' }}>Upto 30 Days</Typography>} />
+                  <FormControlLabel value="90 Days" control={<Radio size="small" />} label={<Typography sx={{ fontSize: '0.65rem' }}>Upto 90 Days</Typography>} />
+                </RadioGroup>
+              )}
 
-            {/* Long Term Logic */}
-            {tradeType === "Long Term" && (
-              <RadioGroup row value={radioValue} onChange={(e) => setRadioValue(e.target.value)}>
-                <FormControlLabel value="6 Months" control={<Radio size="small" />} label={<Typography sx={{ fontSize: '0.65rem' }}>Upto 6 Months</Typography>} />
-                <FormControlLabel value="1 Year" control={<Radio size="small" />} label={<Typography sx={{ fontSize: '0.65rem' }}>Upto 1 Year</Typography>} />
-                <FormControlLabel value="5 Years" control={<Radio size="small" />} label={<Typography sx={{ fontSize: '0.65rem' }}>Upto 5 Years</Typography>} />
-              </RadioGroup>
-            )}
-            {/* This shows the red text below the radios if empty */}
-  {wasValidated && !radioValue && tradeType !== "Intraday" && (
-      <FormHelperText sx={{ fontSize: '0.6rem', mt: 0 }}>Please select a holding period</FormHelperText>
-    )}
-</FormControl>
+              {/* Long Term Logic */}
+              {tradeType === "Long Term" && (
+                <RadioGroup row value={radioValue} onChange={(e) => setRadioValue(e.target.value)}>
+                  <FormControlLabel value="6 Months" control={<Radio size="small" />} label={<Typography sx={{ fontSize: '0.65rem' }}>Upto 6 Months</Typography>} />
+                  <FormControlLabel value="1 Year" control={<Radio size="small" />} label={<Typography sx={{ fontSize: '0.65rem' }}>Upto 1 Year</Typography>} />
+                  <FormControlLabel value="5 Years" control={<Radio size="small" />} label={<Typography sx={{ fontSize: '0.65rem' }}>Upto 5 Years</Typography>} />
+                </RadioGroup>
+              )}
+              {/* This shows the red text below the radios if empty */}
+              {wasValidated && !radioValue && tradeType !== "Intraday" && (
+                <FormHelperText sx={{ fontSize: '0.6rem', mt: 0 }}>Please select a holding period</FormHelperText>
+              )}
+            </FormControl>
           </Box>
 
           {/* BOTTOM PART: Rationale (Now appears under Holding Period) */}
@@ -763,9 +939,13 @@ const NewRecommendation = () => {
           </Box>
         </Box>
 
-        <Button type="submit" variant="contained" fullWidth sx={{ py: 1.5, fontWeight: 700, borderRadius: 2 }} onClick={validateAndPublish}>
-          Generate & Publish
+        <Button
+          variant="contained"
+          onClick={handleSubmit}
+        >
+          Publish Call
         </Button>
+
       </Paper>
 
       {/* RIGHT PANEL */}
@@ -844,7 +1024,7 @@ const NewRecommendation = () => {
                               {item.action} {item.instrument} {item.call_type?.toUpperCase()}
                             </Typography>
                             <Typography sx={{ fontSize: '0.65rem', color: '#333', fontWeight: 600 }}>
-                              {item.symbol} • {item.trade_type}
+                              {item.name} • {item.trade_type}
                             </Typography>
                             <Typography variant="caption" sx={{ fontSize: '0.65rem', color: '#999', mt: 0.5, display: 'block' }}>
                               @{item.entry?.ideal} | TP {item.targets?.join(', ')} | SL {item.stop_losses?.[0]}
