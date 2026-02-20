@@ -11,8 +11,9 @@ import {
   IconButton,
   useMediaQuery,
   useTheme,
+  
 } from "@mui/material";
-import MoreHorizIcon from "@mui/icons-material/MoreHoriz";
+// import MoreHorizIcon from "@mui/icons-material/MoreHoriz";
 import CloseIcon from "@mui/icons-material/Close";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import type { SidebarItem } from "../../types/sidebar";

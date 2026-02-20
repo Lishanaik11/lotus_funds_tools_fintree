@@ -63,7 +63,14 @@ const AppRoutes = () => {
         <Route path="recommendations" element={<AdminRecommendations />} />
         <Route path="approval" element={<AdminApproval />} />
       </Route>
+      
+      {/* Registration Pages */}
 
+      <Route path="/registration" element={<RegistrationPage />} />
+      <Route path="/registration/broker" element={<BrokerRegistration />} />
+
+      
+    
 
 
 
