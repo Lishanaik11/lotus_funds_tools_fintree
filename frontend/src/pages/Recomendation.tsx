@@ -372,6 +372,8 @@ const NewRecommendation = () => {
   // 2. MODIFY FUNCTION (Loads data back into the form)
   const handleModify = (item: any) => {
     // Populate all your left-panel states with the selected item's data
+    console.log(item);
+    setSymbol(item.name);
     setExchangeType(item.exchange);
     setAction(item.action);
     setExchange(item.instrument);
@@ -439,6 +441,18 @@ const NewRecommendation = () => {
     (window as any).populateForm = populateForm;
   }, []);
 
+
+  //instiate
+
+  const activeRecommendations = recommendations.filter(
+    (item) => item.status === "PUBLISHED"
+  );
+
+
+  const watchlistRecommendations = recommendations.filter(
+    (item) => item.status === "DRAFT" // 🔥 temporary
+    // later change to === "WATCHLIST"
+  );
 
 
   return (
@@ -975,7 +989,7 @@ const NewRecommendation = () => {
                 border: '1px solid #e0e0e0'
               }}
             >
-              {recommendations.length}
+              {activeRecommendations.length}
             </Box>
           </Box>
 
@@ -1000,8 +1014,8 @@ const NewRecommendation = () => {
                   </TableRow>
                 </TableHead>
                 <TableBody>
-                  {recommendations.length > 0 ? (
-                    recommendations.map((item) => {
+                  {activeRecommendations.length > 0 ? (
+                    activeRecommendations.map((item) => {
                       const dateObj = new Date(item.created_at);
                       return (
                         <TableRow
@@ -1084,9 +1098,122 @@ const NewRecommendation = () => {
             </TableContainer>
           )}
         </Paper>
-        <Paper sx={{ p: 2 }}>
-          <Typography fontWeight={700} sx={{ fontSize: "0.9rem" }}>Watchlist</Typography>
+        <Paper sx={{ p: 2, overflow: 'hidden', borderRadius: 2, mt: 2 }}>
+          <Box
+            sx={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              mb: 2
+            }}
+          >
+            <Typography fontWeight={700} sx={{ fontSize: "0.9rem" }}>
+              Watchlist
+            </Typography>
+
+            <Box
+              sx={{
+                backgroundColor: '#f0f2f5',
+                color: '#000',
+                borderRadius: '6px',
+                px: 1.5,
+                py: 0.2,
+                fontSize: '0.75rem',
+                fontWeight: 700,
+                border: '1px solid #e0e0e0'
+              }}
+            >
+              {watchlistRecommendations.length}
+            </Box>
+          </Box>
+
+          <TableContainer sx={{ maxHeight: 400 }}>
+            <Table size="small" stickyHeader>
+              <TableHead>
+                <TableRow>
+                  <TableCell sx={{ fontSize: '0.65rem', color: '#999', fontWeight: 700, px: 1, backgroundColor: '#fff' }}>
+                    Published Date
+                  </TableCell>
+                  <TableCell sx={{ fontSize: '0.65rem', color: '#999', fontWeight: 700, px: 1, backgroundColor: '#fff' }}>
+                    Recommendation
+                  </TableCell>
+                  <TableCell align="right" sx={{ fontSize: '0.65rem', color: '#999', fontWeight: 700, px: 1, backgroundColor: '#fff' }}>
+                    Action
+                  </TableCell>
+                </TableRow>
+              </TableHead>
+
+              <TableBody>
+                {watchlistRecommendations.length > 0 ? (
+                  watchlistRecommendations.map((item) => {
+                    const dateObj = new Date(item.created_at);
+
+                    return (
+                      <TableRow
+                        key={item.id}
+                        sx={{
+                          '&:last-child td, &:last-child th': { border: 0 },
+                          '&:hover': { backgroundColor: '#fcfcfc' }
+                        }}
+                      >
+                        <TableCell sx={{ px: 1, py: 1.5 }}>
+                          <Typography sx={{ fontSize: '0.65rem', color: '#666', fontWeight: 500 }}>
+                            {dateObj.toLocaleDateString()}
+                          </Typography>
+                          <Typography sx={{ fontSize: '0.65rem', color: '#999' }}>
+                            {dateObj.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                          </Typography>
+                        </TableCell>
+
+                        <TableCell sx={{ px: 1, py: 1.5 }}>
+                          <Typography sx={{ fontSize: '0.75rem', fontWeight: 700, color: item.action === 'BUY' ? '#2e7d32' : '#d32f2f' }}>
+                            {item.action} {item.instrument} {item.call_type?.toUpperCase()}
+                          </Typography>
+
+                          <Typography sx={{ fontSize: '0.65rem', color: '#333', fontWeight: 600 }}>
+                            {item.name} • {item.trade_type}
+                          </Typography>
+
+                          <Typography variant="caption" sx={{ fontSize: '0.65rem', color: '#999', mt: 0.5, display: 'block' }}>
+                            @{item.entry?.ideal} | TP {item.targets?.join(', ')} | SL {item.stop_losses?.[0]}
+                          </Typography>
+                        </TableCell>
+
+                        {/* 🔥 Only Change Is Here */}
+                        <TableCell align="right" sx={{ px: 1, py: 1.5 }}>
+                          <Button
+                            size="small"
+                            onClick={() => handleModify(item)}  // reuse same logic
+                            sx={{
+                              fontSize: '0.65rem',
+                              textTransform: 'none',
+                              color: '#1976d2',
+                              fontWeight: 700,
+                              minWidth: 'auto',
+                              p: 0,
+                              textAlign: 'right',
+                              justifyContent: 'flex-end',
+                              '&:hover': { backgroundColor: 'transparent', color: '#0d47a1' }
+                            }}
+                          >
+                            Initiate
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })
+                ) : (
+                  <TableRow>
+                    <TableCell colSpan={3} align="center" sx={{ py: 4, color: '#999', fontSize: '0.8rem' }}>
+                      No watchlist items.
+                    </TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
+          </TableContainer>
         </Paper>
+
       </Box>
     </Box>
   );
