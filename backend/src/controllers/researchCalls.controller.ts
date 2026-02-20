@@ -140,8 +140,7 @@ export const getResearchCalls = async (req: AuthRequest, res: Response) => {
         const query = `
           SELECT *
           FROM research_calls
-          WHERE status = 'PUBLISHED'
-          AND ra_user_id = $1
+           WHERE ra_user_id = $1
           ORDER BY created_at DESC
         `;
 
@@ -243,7 +242,6 @@ export const getPublishedCalls = async (_req: AuthRequest, res: Response) => {
         has_vested_interest,
         research_remarks
       FROM research_calls
-      WHERE status = 'PUBLISHED'
       ORDER BY created_at DESC;
     `;
 
