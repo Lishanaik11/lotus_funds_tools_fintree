@@ -23,6 +23,7 @@ import MorningReportBuilder from "../morning-report/MorningReportBuilder";
 import MorningReport from "../morning-report/MorningReport";
 import Logotheme from "../morning-report/Logotheme";
 import Generator from "../morning-report/Generator";
+import ProtectedRoute from "../components/ProtectedRoute";
 
 const AppRoutes = () => {
   return (
@@ -30,7 +31,7 @@ const AppRoutes = () => {
       {/* --- Auth & Public Routes --- */}
       <Route path="/login" element={<LoginForm />} />
       <Route path="/signup" element={<Signup />} />
-      
+
       {/* --- Registration Workflow --- */}
       <Route path="/registration">
         <Route index element={<RegistrationPage />} />
@@ -38,7 +39,7 @@ const AppRoutes = () => {
       </Route>
 
       {/* --- 1. Main Dashboard Layout (Protected) --- */}
-      <Route element={<AppLayout />}>
+      <Route element={<ProtectedRoute><AppLayout /></ProtectedRoute>}>
         <Route path="/" element={<Dashboard />} />
         <Route path="/recommendations" element={<Recommendations />} />
         <Route path="/performance" element={<Performance />} />
