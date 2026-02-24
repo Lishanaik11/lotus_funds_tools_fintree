@@ -50,6 +50,7 @@ const getActionStyles = (current: "BUY" | "SELL", button: "BUY" | "SELL") => {
 };
 
 const NewRecommendation = () => {
+  console.log("RENDER");
   const [exchangeType, setExchangeType] = useState("NSE");
   const [action, setAction] = useState<"BUY" | "SELL">("BUY");
   const [exchange, setExchange] = useState("STOCK");
@@ -88,6 +89,9 @@ const NewRecommendation = () => {
   const [radioValue, setRadioValue] = useState("");
   const [expiry, setExpiry] = useState<string>("");
 
+  const [isErrataMode, setIsErrataMode] = useState(false);
+  const [errataSourceId, setErrataSourceId] = useState<string | null>(null);
+
   const panelBg = action === "BUY" ? "#eef9ee" : "#fee2e2";
   const panelBorder = action === "BUY" ? "#7ac77a" : SELL_COLOR;
 
@@ -121,6 +125,7 @@ const NewRecommendation = () => {
         alert("Please login again");
         return;
       }
+
       const finalDisplayName =
         suggestion &&
           suggestion.toLowerCase().startsWith(inputValue.toLowerCase())
@@ -130,95 +135,82 @@ const NewRecommendation = () => {
       const payload = {
         exchange_type: exchangeType,
         market_type: exchange,
-
-        // ✅ Hardcoded for now
         symbol: "SYM",
         display_name: finalDisplayName,
-
         action,
         call_type: callType,
         trade_type: tradeType,
-
-        // ✅ Use correct state name
         expiry_date: expiry || null,
-
         entry_price: entry || null,
         entry_price_low: null,
         entry_price_upper: null,
-
         target_price: target || null,
         target_price_2: null,
         target_price_3: null,
-
         stop_loss: stopLoss || null,
         stop_loss_2: null,
         stop_loss_3: null,
-
-        holding_period: 1, // temporary
-
+        holding_period: 1,
         rationale,
         underlying_study: underlyingStudyValue?.label || null,
-
         is_algo: false,
         has_vested_interest: false,
         research_remarks: null
       };
 
+      let res;
 
-      const res = await axios.post(
-        import.meta.env.VITE_API_URL + "/api/research/calls",
-        payload,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
+      if (isErrataMode && errataSourceId) {
+        // 🔥 ERRATA FLOW
+        res = await axios.post(
+          import.meta.env.VITE_API_URL + "/api/research/calls/errata",
+          {
+            call_id: errataSourceId,
+            updates: payload,
           },
-        }
-      );
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }
+        );
 
+        alert("Errata Created ✅");
 
+      } else {
+        // ✅ NORMAL CREATE
+        res = await axios.post(
+          import.meta.env.VITE_API_URL + "/api/research/calls",
+          payload,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }
+        );
 
-      // Optimistically update the list
-      const newRecommendation = {
-        id: res.data.id,
-        created_at: res.data.created_at,
-        status: "PUBLISHED",
-        exchange: exchangeType,
-        instrument: exchange, // originally market_type
-        symbol: "SYM",
-        name: finalDisplayName,
-        action,
-        call_type: callType,
-        trade_type: tradeType,
-        expiry_date: expiry || null,
-        entry: {
-          low: null,
-          ideal: entry || null,
-          high: null,
+        alert("Research Call Created ✅");
+      }
+
+      const createdCall = res.data.data || res.data;
+
+      // Update list with new version
+      setRecommendations((prev) => [
+        {
+          ...createdCall,
+          name: createdCall.display_name,
         },
-        targets: [target].filter(Boolean),
-        stop_losses: [stopLoss].filter(Boolean),
-        holding_period: 1,
-        rationale,
-        underlying_study: underlyingStudyValue?.label || null,
-        flags: {
-          algo: false,
-          vested_interest: false,
-        },
-        remarks: null,
-      };
+        ...prev.filter((c) => c.id !== errataSourceId), // remove old version
+      ]);
 
-      setRecommendations((prev) => [newRecommendation, ...prev]);
-
-      alert("Research Call Created ✅");
-
+      // Reset errata mode
+      setIsErrataMode(false);
+      setErrataSourceId(null);
 
     } catch (err: any) {
       console.error(err);
-      alert(err?.response?.data?.message || "Error creating call");
+      alert(err?.response?.data?.message || "Error submitting call");
     }
-
-
-
   };
 
 
@@ -241,7 +233,8 @@ const NewRecommendation = () => {
   const {
     inputValue,
     suggestion,
-    options,
+    setDirectValue,
+    matches,
     open,
     handleInputChange,
     handleKeyDown,
@@ -327,95 +320,123 @@ const NewRecommendation = () => {
   const DATA_SOURCE =
     import.meta.env.VITE_API_URL + "/api/research/calls/my";
 
-  useEffect(() => {
-    const fetchRecommendations = async () => {
-      try {
-        setLoading(true);
+  const fetchRecommendations = async () => {
+    try {
+      setLoading(true);
 
-        const token = localStorage.getItem("token");
+      const token = localStorage.getItem("token");
 
-        const response = await fetch(DATA_SOURCE, {
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-        });
+      const response = await fetch(DATA_SOURCE, {
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+      });
 
-        if (!response.ok) {
-          throw new Error("Unauthorized or failed request");
-        }
-
-        const data = await response.json();
-
-        setRecommendations(Array.isArray(data) ? data : [data]);
-
-      } catch (error) {
-        console.error("Failed to fetch recommendations:", error);
-      } finally {
-        setLoading(false);
+      if (!response.ok) {
+        throw new Error("Unauthorized or failed request");
       }
-    };
 
+      const data = await response.json();
+
+      setRecommendations(Array.isArray(data) ? data : [data]);
+
+    } catch (error) {
+      console.error("Failed to fetch recommendations:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
     fetchRecommendations();
   }, []);
 
-
   // 1. EXIT FUNCTION (Removes the item from the list)
-  const handleExit = (id: string) => {
-    if (window.confirm("Are you sure you want to exit this recommendation?")) {
-      // For now, we update the UI state. 
-      // Later, your Sir will add: await fetch(`${DATA_SOURCE}/${id}`, { method: 'DELETE' });
-      setRecommendations((prev) => prev.filter((item) => item.id !== id));
+  const handleExit = async (id: string) => {
+    if (!window.confirm("Are you sure you want to exit this recommendation?")) {
+      return;
+    }
+
+    try {
+      const token = localStorage.getItem("token");
+      const DATA_SOURCE =
+        import.meta.env.VITE_API_URL + "/api/research/calls";
+      const response = await fetch(`${DATA_SOURCE}/${id}/exit`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to exit recommendation");
+      }
+
+      // 🔥 Refetch updated list from backend
+      await fetchRecommendations();
+
+    } catch (error) {
+      console.error("Exit failed:", error);
     }
   };
 
   // 2. MODIFY FUNCTION (Loads data back into the form)
   const handleModify = (item: any) => {
-    console.log("Modifying Item:", item);
+    console.log("Preparing Errata for:", item);
 
-    // 1. Fix Script Name / Symbol
-    // We must update 'inputValue' because your Autocomplete uses 'inputValue' from the hook
-    if (handleInputChange) {
-      // 'item.name' is what you used in handleSubmit, 'item.symbol' is the ticker
-      handleInputChange(null, item.name || item.symbol || ""); 
-    }
-
-    // 2. Fix Underlying Study
-    // The state expects a { label, value } object, not just a string
+    // 1️⃣ Script / Symbol
+    //setDirectValue(item.display_name || item.symbol || "");
+    // 2️⃣ Underlying Study
     if (item.underlying_study) {
       setUnderlyingStudyValue({
         label: item.underlying_study,
-        value: item.underlying_study.toLowerCase().replace(/\s+/g, '_') // Fallback value
+        value: item.underlying_study
+          .toLowerCase()
+          .replace(/\s+/g, "_"),
       });
     }
 
-    // 3. Standard States
-    setExchangeType(item.exchange);
+    // 3️⃣ Core Fields
+    setExchangeType(item.exchange_type);
+    setExchange(item.market_type);
     setAction(item.action);
-    setExchange(item.instrument);
     setCallType(item.call_type);
     setTradeType(item.trade_type);
 
-    // 4. Prices (with safety checks)
-    if (item.entry) {
-      setEntry(item.entry.ideal?.toString() || "");
-    }
-    if (item.targets && item.targets.length > 0) {
-      setTarget(item.targets[0].toString());
-    }
-    if (item.stop_losses && item.stop_losses.length > 0) {
-      setStopLoss(item.stop_losses[0].toString());
+    // 4️⃣ Prices
+    setEntry(item.entry_price?.toString() || "");
+    setTarget(item.target_price?.toString() || "");
+    setStopLoss(item.stop_loss?.toString() || "");
+
+    // Optional multi targets
+    if (item.target_price_2) {
+      setTarget2(item.target_price_2.toString());
     }
 
-    setRationale(item.rationale);
-    
-    // 5. Expiry Date
+    if (item.target_price_3) {
+      setTarget3(item.target_price_3.toString());
+    }
+
+    if (item.stop_loss_2) {
+      setStopLoss2(item.stop_loss_2.toString());
+    }
+
+    if (item.stop_loss_3) {
+      setStopLoss3(item.stop_loss_3.toString());
+    }
+
+    // 5️⃣ Rationale
+    setRationale(item.rationale || "");
+
+    // 6️⃣ Expiry
     if (item.expiry_date) {
       setExpiry(item.expiry_date);
     }
 
-    // Scroll to top
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    // Scroll up
+    window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
   // Temporary
@@ -669,7 +690,7 @@ const NewRecommendation = () => {
             <Autocomplete
               freeSolo
               open={open}
-              options={options}
+              options={matches}
               inputValue={inputValue}
               onInputChange={handleInputChange}
               onKeyDown={handleKeyDown}
@@ -980,7 +1001,7 @@ const NewRecommendation = () => {
           variant="contained"
           onClick={handleSubmit}
         >
-          Publish Call
+          {isErrataMode ? "Create Errata" : "Publish Call"}
         </Button>
 
       </Paper>

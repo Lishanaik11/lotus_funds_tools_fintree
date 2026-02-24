@@ -6,21 +6,47 @@ type ExchangeType = "NSE" | "BSE";
 export function useStockAutocomplete(exchangeType: ExchangeType) {
     const [inputValue, setInputValue] = useState("");
     const [suggestion, setSuggestion] = useState("");
+    const [isProgrammatic, setIsProgrammatic] = useState(false);
 
+    // 🔥 Pre-normalize once
     const options = useMemo(() => {
-        return STOCK_DATA[exchangeType] || [];
+        const raw = STOCK_DATA[exchangeType] || [];
+
+        return raw.map((s) => ({
+            original: s,
+            lower: s.toLowerCase(),
+        }));
     }, [exchangeType]);
 
+    // 🔥 For modify click (no heavy filtering)
+    const setDirectValue = (value: string) => {
+        setIsProgrammatic(true);
+        setInputValue(value);
+        setSuggestion("");
+    };
+
+    // 🔥 Optimized matching
     const matches = useMemo(() => {
         if (!inputValue) return [];
-        return options.filter((s) =>
-            s.toLowerCase().startsWith(inputValue.toLowerCase())
-        );
-    }, [inputValue, options]);
 
-    const open = inputValue.length > 0 && matches.length > 1;
+        // Skip filtering when value is programmatically set
+        if (isProgrammatic) {
+            setIsProgrammatic(false);
+            return [];
+        }
+
+        const lowerInput = inputValue.toLowerCase();
+
+        return options
+            .filter((s) => s.lower.startsWith(lowerInput))
+            .slice(0, 20) // 👈 limit results for performance
+            .map((s) => s.original);
+    }, [inputValue, options, isProgrammatic]);
+
+    const open = inputValue.length > 0 && matches.length > 0;
 
     const handleInputChange = (_: any, value: string) => {
+        setIsProgrammatic(false);
         setInputValue(value);
 
         if (value.length > 0 && matches.length > 0) {
@@ -40,9 +66,9 @@ export function useStockAutocomplete(exchangeType: ExchangeType) {
 
     return {
         inputValue,
-        setInputValue,
+        setDirectValue,
         suggestion,
-        options,
+        matches,
         open,
         handleInputChange,
         handleKeyDown,
