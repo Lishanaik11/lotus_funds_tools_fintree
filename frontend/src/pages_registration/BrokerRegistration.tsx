@@ -1,7 +1,6 @@
 import React, { useRef, useState } from "react";
 import {
   Box,
-  Grid,
   TextField,
   Typography,
   Button,
@@ -16,7 +15,6 @@ import {
   Stack,
   Radio,
   RadioGroup,
-  FormHelperText,
   Accordion,
   AccordionSummary,
   AccordionDetails,
@@ -28,7 +26,8 @@ import {
 } from "@mui/material";
 import { styled } from "@mui/material/styles";
 import type { StepIconProps } from "@mui/material/StepIcon";
-
+import Grid from "@mui/material/Grid"; 
+import { FormHelperText } from "@mui/material";
 import HelpOutlineIcon from "@mui/icons-material/HelpOutline";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
@@ -40,10 +39,11 @@ import EditIcon from "@mui/icons-material/Edit";
 import InsertDriveFileIcon from "@mui/icons-material/InsertDriveFile";
 import FileUploadOutlinedIcon from "@mui/icons-material/FileUploadOutlined";
 
+
 // ─────────────────────────────────────────────
 // Qonto-style Stepper connector & icon
 // ─────────────────────────────────────────────
-const QontoConnector = styled(StepConnector)(({ theme }) => ({
+const QontoConnector = styled(StepConnector)(({ theme: _ }) => ({
   [`&.${stepConnectorClasses.alternativeLabel}`]: { top: 10, left: "calc(-50% + 16px)", right: "calc(50% + 16px)" },
   [`&.${stepConnectorClasses.active}`]: { [`& .${stepConnectorClasses.line}`]: { borderColor: "#2563EB" } },
   [`&.${stepConnectorClasses.completed}`]: { [`& .${stepConnectorClasses.line}`]: { borderColor: "#2563EB" } },
@@ -232,28 +232,38 @@ const BrokerRegistration = () => {
   };
 
   const validateStep2 = () => {
-    const errs: Record<string, boolean> = {};
-    if (!s2.sebiRegNo.trim()) errs.sebiRegNo = true;
-    if (!s2.regCategory) errs.regCategory = true;
-    if (!s2.regDate) errs.regDate = true;
-    if (!sebiCertFile) errs.sebiCertFile = true;
-    if (!s2.exchangeNSE && !s2.exchangeBSE && !s2.exchangeSMI && !s2.exchangeNCDEX) errs.exchange = true;
-    setS2Err(errs);
-    return Object.keys(errs).length === 0;
-  };
+  const errs: Record<string, boolean> = {};
 
+  if (!s2.sebiRegNo.trim()) errs.sebiRegNo = true;
+  if (!s2.regCategory) errs.regCategory = true;
+  if (!s2.regDate) errs.regDate = true;
+  if (!sebiCertFile) errs.sebiCertFile = true;
+
+  if (
+    !s2.exchangeNSE &&
+    !s2.exchangeBSE &&
+    !s2.exchangeSMI &&
+    !s2.exchangeNCDEX
+  ) {
+    errs.exchange = true;
+  }
+
+  setS2Err(errs);
+  return Object.keys(errs).length === 0;
+};
   const validateStep3 = () => {
-    const errs: Record<string, boolean> = {};
-    if (!s3.coName.trim()) errs.coName = true;
-    if (!s3.coDesignation) errs.coDesignation = true;
-    if (!s3.coPan.trim()) errs.coPan = true;
-    if (!s3.coMobile.trim()) errs.coMobile = true;
-    if (!appointmentFile) errs.appointmentFile = true;
-    if (!s3.netWorth.trim()) errs.netWorth = true;
-    if (!s3.auditorName.trim()) errs.auditorName = true;
-    setS3Err(errs);
-    return Object.keys(errs).length === 0;
-  };
+  const errs: Record<string, boolean> = {};
+  if (!s3.coName.trim()) errs.coName = true;
+  if (!s3.coDesignation) errs.coDesignation = true;
+  if (!s3.coPan.trim()) errs.coPan = true;
+  if (!s3.coMobile.trim()) errs.coMobile = true;
+  if (!appointmentFile) errs.appointmentFile = true;
+  if (!s3.netWorth.trim()) errs.netWorth = true;
+  if (!s3.auditorName.trim()) errs.auditorName = true;
+
+  setS3Err(errs);
+  return Object.keys(errs).length === 0;
+};
 
   const validateStep4 = () => {
     const errs: Record<string, boolean> = {};
@@ -299,17 +309,17 @@ const BrokerRegistration = () => {
     <Box>
       <Typography variant="subtitle1" sx={{ fontWeight: 800, mb: 3, color: "#1E293B" }}>Basic Details</Typography>
       <Grid container spacing={3}>
-        <Grid item xs={12} sm={6} md={4}>
+        <Grid size={{ xs: 12, sm: 6, md: 4 }}>
           {label("Legal Name of Entity", true)}
           <TextField fullWidth sx={s1Err.legalName ? inputSxErr : inputSx}
             value={s1.legalName} onChange={(e) => setS1({ ...s1, legalName: e.target.value })} />
           {s1Err.legalName && errMsg()}
         </Grid>
-        <Grid item xs={12} sm={6} md={4}>
+        <Grid size={{ xs: 12, sm: 6, md: 4 }}>
           {label("Trade Name (if any)")}
           <TextField fullWidth sx={inputSx} value={s1.tradeName} onChange={(e) => setS1({ ...s1, tradeName: e.target.value })} />
         </Grid>
-        <Grid item xs={12} sm={6} md={4}>
+        <Grid size={{ xs: 12, sm: 6, md: 4 }}>
           {label("Type of Entity", true)}
           <Select fullWidth displayEmpty value={s1.entityType} onChange={(e) => setS1({ ...s1, entityType: e.target.value })}
             sx={{ ...(s1Err.entityType ? inputSxErr : inputSx), height: 40, fontSize: "0.85rem" }}>
@@ -322,30 +332,30 @@ const BrokerRegistration = () => {
           </Select>
           {s1Err.entityType && errMsg()}
         </Grid>
-        <Grid item xs={12} sm={6} md={3}>
+        <Grid size={{ xs: 12, sm: 6, md: 4 }}>
           {label("Date of Incorporation")}
           <TextField fullWidth type="date" sx={inputSx} value={s1.incDay}
             onChange={(e) => setS1({ ...s1, incDay: e.target.value })}
             InputProps={{ endAdornment: <InputAdornment position="end"><CalendarMonthIcon sx={{ fontSize: 18, color: "#94A3B8" }} /></InputAdornment> }}
             InputLabelProps={{ shrink: true }} />
         </Grid>
-        <Grid item xs={12} sm={6} md={3}>
+        <Grid size={{ xs: 12, sm: 6, md: 4 }}>
           {label("PAN of Entity", true)}
           <TextField fullWidth placeholder="AAAAA9999A" sx={s1Err.pan ? inputSxErr : inputSx}
             value={s1.pan} onChange={(e) => setS1({ ...s1, pan: e.target.value.toUpperCase() })} />
           {s1Err.pan && errMsg()}
         </Grid>
-        <Grid item xs={12} sm={6} md={3}>
+       <Grid size={{ xs: 12, sm: 6, md: 4 }}>
           {label("CIN / LLPIN")}
           <TextField fullWidth sx={inputSx} value={s1.cin} onChange={(e) => setS1({ ...s1, cin: e.target.value })} />
         </Grid>
-        <Grid item xs={12} sm={6} md={3}>
+        <Grid size={{ xs: 12, sm: 6, md: 4 }}>
           {label("GSTIN")}
           <TextField fullWidth placeholder="Enter GSTIN" sx={inputSx} value={s1.gstin} onChange={(e) => setS1({ ...s1, gstin: e.target.value })} />
         </Grid>
 
         {/* Addresses */}
-        <Grid item xs={12} md={6}>
+        <Grid size={{ xs: 12, sm: 6, md: 4 }}>
           {label("Registered Office Address", true)}
           <TextField fullWidth multiline rows={4} placeholder="Enter registered office address"
             value={s1.registeredAddress}
@@ -362,7 +372,7 @@ const BrokerRegistration = () => {
             }} />
           {s1Err.registeredAddress && errMsg()}
         </Grid>
-        <Grid item xs={12} md={6}>
+        <Grid size={{ xs: 12, sm: 6, md: 4 }}>
           {label("Correspondence Address", true)}
           <TextField fullWidth multiline rows={4} placeholder="Enter correspondence address"
             disabled={s1.sameAsRegistered}
@@ -380,20 +390,20 @@ const BrokerRegistration = () => {
         </Grid>
 
         {/* Contact */}
-        <Grid item xs={12}><Divider sx={{ borderColor: "#F1F5F9" }} /><Typography variant="subtitle2" sx={{ fontWeight: 800, mt: 3, mb: 2, color: "#1E293B" }}>Contact Information</Typography></Grid>
-        <Grid item xs={12} sm={6} md={4}>
+        <Grid size={{ xs: 12, sm: 6, md: 4 }}><Divider sx={{ borderColor: "#F1F5F9" }} /><Typography variant="subtitle2" sx={{ fontWeight: 800, mt: 3, mb: 2, color: "#1E293B" }}>Contact Information</Typography></Grid>
+        <Grid size={{ xs: 12, sm: 6, md: 4 }}>
           {label("Official Email ID", true)}
           <TextField fullWidth placeholder="name@company.com" sx={s1Err.email ? inputSxErr : inputSx}
             value={s1.email} onChange={(e) => setS1({ ...s1, email: e.target.value })} />
           {s1Err.email && errMsg()}
         </Grid>
-        <Grid item xs={12} sm={6} md={4}>
+        <Grid size={{ xs: 12, sm: 6, md: 4 }}>
           {label("Official Mobile Number", true)}
           <TextField fullWidth placeholder="+91 XXXXX XXXXX" sx={s1Err.mobile ? inputSxErr : inputSx}
             value={s1.mobile} onChange={(e) => setS1({ ...s1, mobile: e.target.value })} />
           {s1Err.mobile && errMsg()}
         </Grid>
-        <Grid item xs={12} sm={6} md={4}>
+        <Grid size={{ xs: 12, sm: 6, md: 4 }}>
           {label("Website URL")}
           <TextField fullWidth placeholder="https://" sx={inputSx}
             value={s1.website} onChange={(e) => setS1({ ...s1, website: e.target.value })} />
@@ -408,17 +418,17 @@ const BrokerRegistration = () => {
       <Typography variant="subtitle1" sx={{ fontWeight: 800, mb: 3, color: "#1E293B" }}>SEBI & Exchange Details</Typography>
       <Grid container spacing={3}>
         {/* SEBI Registration - Heading */}
-        <Grid item xs={12}>
+        <Grid size={{ xs:12}}>
           <Typography variant="subtitle2" sx={{ fontWeight: 700, pb: 1, borderBottom: "1px solid #E2E8F0", mb: 2 }}>SEBI Registration</Typography>
         </Grid>
         {/* SEBI Registration - Fields below heading */}
-        <Grid item xs={12} sm={6} md={4}>
+       <Grid size={{ xs: 12, sm: 6, md: 4 }}>
           {label("SEBI Registration Number", true)}
           <TextField fullWidth placeholder="INZ0123456789" sx={s2Err.sebiRegNo ? inputSxErr : inputSx}
             value={s2.sebiRegNo} onChange={(e) => setS2({ ...s2, sebiRegNo: e.target.value })} />
           {s2Err.sebiRegNo && errMsg()}
         </Grid>
-        <Grid item xs={12} sm={6} md={4}>
+       <Grid size={{ xs: 12, sm: 6, md: 4 }}>
           {label("Registration Category", true)}
           <Select fullWidth displayEmpty value={s2.regCategory} onChange={(e) => setS2({ ...s2, regCategory: e.target.value })}
             sx={{ ...(s2Err.regCategory ? inputSxErr : inputSx), height: 40, fontSize: "0.85rem" }}>
@@ -429,24 +439,24 @@ const BrokerRegistration = () => {
           </Select>
           {s2Err.regCategory && errMsg()}
         </Grid>
-        <Grid item xs={12} sm={6} md={4}>
+        <Grid size={{ xs: 12, sm: 6, md: 4 }}>
           {label("Registration Date", true)}
           <TextField fullWidth type="date" sx={s2Err.regDate ? inputSxErr : inputSx}
             value={s2.regDate} onChange={(e) => setS2({ ...s2, regDate: e.target.value })}
             InputLabelProps={{ shrink: true }} />
           {s2Err.regDate && errMsg()}
         </Grid>
-        <Grid item xs={12} sm={6} md={4}>
+       <Grid size={{ xs: 12, sm: 6, md: 4 }}>
           {label("Validity of Registration")}
           <TextField fullWidth placeholder="e.g. Perpetual / DD-MM-YYYY" sx={inputSx}
             value={s2.regValidity} onChange={(e) => setS2({ ...s2, regValidity: e.target.value })} />
         </Grid>
-        <Grid item xs={12} sm={6} md={4}>
+        <Grid size={{ xs: 12, sm: 6, md: 4 }}>
           <FileUploadBox fieldLabel="Upload SEBI Certificate (PDF)" file={sebiCertFile} onChange={setSebiCertFile} error={s2Err.sebiCertFile} />
         </Grid>
 
         {/* Exchange */}
-        <Grid item xs={12} sx={{ mt: 1 }}>
+        <Grid size={{ xs: 12, sm: 6, md: 4 }}>
           <Typography variant="subtitle2" sx={{ fontWeight: 700, pb: 1, borderBottom: "1px solid #E2E8F0", mb: 2 }}>Stock Exchange Membership</Typography>
           <Typography variant="caption" sx={{ fontWeight: 700, mb: 1, display: "block" }}>
             Select Exchange(s) <span style={{ color: "#EF4444" }}>*</span>
@@ -465,12 +475,12 @@ const BrokerRegistration = () => {
           {s2Err.exchange && errMsg("Please select at least one exchange")}
         </Grid>
 
-        <Grid item xs={12} sm={6} md={4}>
+        <Grid size={{ xs: 12, sm: 6, md: 4 }}>
           {label("Membership Code")}
           <TextField fullWidth placeholder="INB1223456789" sx={inputSx}
             value={s2.membershipCode} onChange={(e) => setS2({ ...s2, membershipCode: e.target.value })} />
         </Grid>
-        <Grid item xs={12} sm={6} md={4}>
+        <Grid size={{ xs: 12, sm: 6, md: 4 }}>
           {label("Segments")}
           <Stack direction="row" sx={{ flexWrap: "wrap" }}>
             {(["Cash", "F&O", "Currency"] as const).map((seg) => {
@@ -485,7 +495,7 @@ const BrokerRegistration = () => {
             })}
           </Stack>
         </Grid>
-        <Grid item xs={12} sm={6} md={4}>
+        <Grid size={{ xs: 12, sm: 6, md: 4 }}>
           <FileUploadBox fieldLabel="Upload Exchange Membership Certificate (PDF)" file={exchangeCertFile} onChange={setExchangeCertFile} />
         </Grid>
       </Grid>
@@ -502,13 +512,13 @@ const BrokerRegistration = () => {
         </AccordionSummary>
         <AccordionDetails sx={{ px: 4, py: 4 }}>
           <Grid container spacing={3}>
-            <Grid item xs={12} sm={6}>
+            <Grid size={{ xs: 12, sm: 6 }}>
               {label("Name of Compliance Officer", true)}
               <TextField fullWidth placeholder="Full Name" sx={s3Err.coName ? inputSxErr : inputSx}
                 value={s3.coName} onChange={(e) => setS3({ ...s3, coName: e.target.value })} />
               {s3Err.coName && errMsg()}
             </Grid>
-            <Grid item xs={12} sm={6}>
+           <Grid size={{ xs: 12, sm: 6}}>
               {label("Designation", true)}
               <Select fullWidth displayEmpty value={s3.coDesignation} onChange={(e) => setS3({ ...s3, coDesignation: e.target.value })}
                 sx={{ ...(s3Err.coDesignation ? inputSxErr : inputSx), height: 40, fontSize: "0.85rem" }}>
@@ -519,19 +529,19 @@ const BrokerRegistration = () => {
               </Select>
               {s3Err.coDesignation && errMsg()}
             </Grid>
-            <Grid item xs={12} sm={6}>
+           <Grid size={{ xs: 12, sm: 6}}>
               {label("PAN of Compliance Officer", true)}
               <TextField fullWidth placeholder="Enter PAN" sx={s3Err.coPan ? inputSxErr : inputSx}
                 value={s3.coPan} onChange={(e) => setS3({ ...s3, coPan: e.target.value.toUpperCase() })} />
               {s3Err.coPan && errMsg()}
             </Grid>
-            <Grid item xs={12} sm={6}>
+            <Grid size={{ xs: 12, sm: 6}}>
               {label("Mobile Number", true)}
               <TextField fullWidth placeholder="Enter Mobile" sx={s3Err.coMobile ? inputSxErr : inputSx}
                 value={s3.coMobile} onChange={(e) => setS3({ ...s3, coMobile: e.target.value })} />
               {s3Err.coMobile && errMsg()}
             </Grid>
-            <Grid item xs={12} sm={6}>
+            <Grid size={{ xs: 12, sm: 6}}>
               <FileUploadBox fieldLabel="Upload Appointment Letter (PDF)" file={appointmentFile} onChange={setAppointmentFile} error={s3Err.appointmentFile} />
             </Grid>
           </Grid>
@@ -544,30 +554,30 @@ const BrokerRegistration = () => {
         </AccordionSummary>
         <AccordionDetails sx={{ px: 4, py: 4 }}>
           <Grid container spacing={3}>
-            <Grid item xs={12} sm={6} md={4}>
+            <Grid size={{ xs: 12, sm: 6, md: 4 }}>
               {label("Net Worth (Latest Audited ₹)", true)}
               <TextField fullWidth placeholder="e.g. 5,00,00,000" sx={s3Err.netWorth ? inputSxErr : inputSx}
                 value={s3.netWorth} onChange={(e) => setS3({ ...s3, netWorth: e.target.value })} />
               {s3Err.netWorth && errMsg()}
             </Grid>
-            <Grid item xs={12} sm={6} md={4}>
+            <Grid size={{ xs: 12, sm: 6, md: 4 }}>
               {label("Name of Auditor", true)}
               <TextField fullWidth placeholder="Auditor Name" sx={s3Err.auditorName ? inputSxErr : inputSx}
                 value={s3.auditorName} onChange={(e) => setS3({ ...s3, auditorName: e.target.value })} />
               {s3Err.auditorName && errMsg()}
             </Grid>
-            <Grid item xs={12} sm={6} md={4}>
+            <Grid size={{ xs: 12, sm: 6, md: 4 }}>
               {label("Auditor Membership No.")}
               <TextField fullWidth placeholder="Membership No." sx={inputSx}
                 value={s3.auditorMembership} onChange={(e) => setS3({ ...s3, auditorMembership: e.target.value })} />
             </Grid>
-            <Grid item xs={12} sm={6} md={4}>
+            <Grid size={{ xs: 12, sm: 6, md: 4 }}>
               <FileUploadBox fieldLabel="Upload Networth Certificate (PDF)" file={networthFile} onChange={setNetworthFile} />
             </Grid>
-            <Grid item xs={12} sm={6} md={4}>
+            <Grid size={{ xs: 12, sm: 6, md: 4 }}>
               <FileUploadBox fieldLabel="Upload Financial Statements (PDF)" file={financialFile} onChange={setFinancialFile} />
             </Grid>
-            <Grid item xs={12} sm={6} md={4}>
+            <Grid size={{ xs: 12, sm: 6, md: 4 }}>
               <FileUploadBox fieldLabel="Upload CA Certificate (PDF)" file={caFile} onChange={setCaFile} />
             </Grid>
           </Grid>
@@ -588,35 +598,35 @@ const BrokerRegistration = () => {
           </AccordionSummary>
           <AccordionDetails sx={{ px: 4, py: 4 }}>
             <Grid container spacing={3}>
-              <Grid item xs={12} sm={6}>
+              <Grid size={{ xs: 12, sm: 6}}>
                 {label("Full Name", true)}
                 <TextField fullWidth placeholder="Enter Full Name" sx={s4Err.fullName ? inputSxErr : inputSx}
                   value={s4.fullName} onChange={(e) => setS4({ ...s4, fullName: e.target.value })} />
                 {s4Err.fullName && errMsg()}
               </Grid>
-              <Grid item xs={12} sm={6}>
+              <Grid size={{ xs: 12, sm: 6}}>
                 {label("PAN", true)}
                 <TextField fullWidth placeholder="Enter PAN" sx={s4Err.pan ? inputSxErr : inputSx}
                   value={s4.pan} onChange={(e) => setS4({ ...s4, pan: e.target.value.toUpperCase() })} />
                 {s4Err.pan && errMsg()}
               </Grid>
-              <Grid item xs={12} sm={6}>
+              <Grid size={{ xs: 12, sm: 6 }}>
                 {label("Designation")}
                 <TextField fullWidth placeholder="Enter Designation" sx={inputSx}
                   value={s4.designation} onChange={(e) => setS4({ ...s4, designation: e.target.value })} />
               </Grid>
-              <Grid item xs={12} sm={6}>
+              <Grid size={{ xs: 12, sm: 6}}>
                 {label("Official Email ID", true)}
                 <TextField fullWidth placeholder="Enter Email" sx={s4Err.email ? inputSxErr : inputSx}
                   value={s4.email} onChange={(e) => setS4({ ...s4, email: e.target.value })} />
                 {s4Err.email && errMsg()}
               </Grid>
-              <Grid item xs={12} sm={6}>
+              <Grid size={{ xs: 12, sm: 6}}>
                 {label("Aadhaar (Optional)")}
                 <TextField fullWidth placeholder="XXXX XXXX XXXX" sx={inputSx}
                   value={s4.aadhaar} onChange={(e) => setS4({ ...s4, aadhaar: e.target.value })} />
               </Grid>
-              <Grid item xs={12} sm={6}>
+              <Grid size={{ xs: 12, sm: 6 }}>
                 {label("Mobile Number", true)}
                 <TextField fullWidth placeholder="Enter Mobile" sx={s4Err.mobile ? inputSxErr : inputSx}
                   value={s4.mobile} onChange={(e) => setS4({ ...s4, mobile: e.target.value })} />
@@ -632,7 +642,7 @@ const BrokerRegistration = () => {
           </AccordionSummary>
           <AccordionDetails sx={{ px: 4, py: 4 }}>
             <Grid container spacing={4}>
-              <Grid item xs={12} md={6}>
+              <Grid size={{ xs: 12, sm: 6 }}>
                 {label("Role Selection")}
                 <RadioGroup row value={s4.role} onChange={(e) => setS4({ ...s4, role: e.target.value })}>
                   {["Super Admin", "Analyst", "Compliance", "View"].map((role) => (
@@ -652,7 +662,7 @@ const BrokerRegistration = () => {
                   <Typography variant="caption" sx={{ color: "#94A3B8", fontSize: "0.65rem" }}>PDF Max 5MB</Typography>
                 </Box>
               </Grid>
-              <Grid item xs={12} md={6}>
+              <Grid size={{ xs: 12,  md: 6 }}>
                 {label("Segments Allowed")}
                 <Box sx={{ display: "flex", flexWrap: "wrap", mb: 3 }}>
                   {(Object.keys(s4.segments) as Array<keyof typeof s4.segments>).map((seg) => (
@@ -666,7 +676,7 @@ const BrokerRegistration = () => {
                 {label("Permissions")}
                 <Grid container spacing={1}>
                   {(Object.keys(s4.permissions) as Array<keyof typeof s4.permissions>).map((perm) => (
-                    <Grid item xs={6} key={perm}>
+                    <Grid key={perm} size={{ xs: 6 }}>
                       <FormControlLabel
                         control={<Checkbox size="small" checked={s4.permissions[perm]}
                           onChange={(e) => setS4({ ...s4, permissions: { ...s4.permissions, [perm]: e.target.checked } })}
@@ -695,7 +705,7 @@ const BrokerRegistration = () => {
       <Typography variant="subtitle1" sx={{ fontWeight: 800, mb: 3, color: "#1E293B" }}>Review & Declaration</Typography>
       <Grid container spacing={3}>
         {/* Entity Details */}
-        <Grid item xs={12} md={6}>
+        <Grid size={{ xs: 12, md: 6 }}>
           <Paper variant="outlined" sx={{ p: 2.5, borderRadius: "10px", height: "100%" }}>
             <Box sx={sectionHdrSx}>
               <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>Entity Details</Typography>
@@ -718,7 +728,7 @@ const BrokerRegistration = () => {
         </Grid>
 
         {/* SEBI Details */}
-        <Grid item xs={12} md={6}>
+        <Grid size={{ xs: 12, md: 6 }}>
           <Paper variant="outlined" sx={{ p: 2.5, borderRadius: "10px", height: "100%" }}>
             <Box sx={sectionHdrSx}>
               <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>SEBI & Exchange Details</Typography>
@@ -745,7 +755,7 @@ const BrokerRegistration = () => {
         </Grid>
 
         {/* Compliance Officer */}
-        <Grid item xs={12} md={6}>
+        <Grid size={{ xs: 12, md: 6 }}>
           <Paper variant="outlined" sx={{ p: 2.5, borderRadius: "10px", height: "100%" }}>
             <Box sx={sectionHdrSx}>
               <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>Compliance & Financials</Typography>
@@ -763,7 +773,7 @@ const BrokerRegistration = () => {
         </Grid>
 
         {/* Authorized Person */}
-        <Grid item xs={12} md={6}>
+        <Grid size={{ xs: 12, md: 6 }}>
           <Paper variant="outlined" sx={{ p: 2.5, borderRadius: "10px", height: "100%" }}>
             <Box sx={sectionHdrSx}>
               <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>Authorized Person</Typography>
@@ -781,9 +791,10 @@ const BrokerRegistration = () => {
         </Grid>
 
         {/* Regulatory Declarations */}
-        <Grid item xs={12}>
+        <Grid size={{ xs: 12}}>
           <Paper variant="outlined" sx={{ p: 3, borderRadius: "10px" }}>
             <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 2 }}>Regulatory Declarations</Typography>
+ 
             <Typography variant="caption" sx={{ color: "#EF4444", mb: 1, display: "block" }}>
               {Object.keys(s5Err).length > 0 && "Please accept all declarations to proceed."}
             </Typography>
@@ -797,7 +808,7 @@ const BrokerRegistration = () => {
                   ["agreeConduct", "Agree to platform code of conduct and terms of use"],
                 ] as [keyof typeof declarations, string][]
               ).map(([key, text]) => (
-                <Grid item xs={12} md={6} key={key}>
+                <Grid key={key} size={{ xs: 12, md: 6 }}>
                   <FormControlLabel
                     control={<Checkbox size="small" checked={declarations[key]}
                       onChange={(e) => setDeclarations({ ...declarations, [key]: e.target.checked })}
@@ -808,7 +819,38 @@ const BrokerRegistration = () => {
             </Grid>
           </Paper>
         </Grid>
-      </Grid>
+{/* Additional Comments outside Regulatory Declarations */}
+   <Grid  xs={12} sx={{ mt: 3 }} >
+  <Paper variant="outlined" sx={{ p: 3, borderRadius: "9px", width: '100%' }}>
+    {/* Header */}
+    <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 1 }}>
+      Add Your Customs
+    </Typography>
+
+    {/* Subtext */}
+    <Typography variant="body2" sx={{ color: "#64748B", mb: 2 }}>
+      Please provide any additional disclaimer or specific disclosures that should appear on your research publications.
+    </Typography>
+
+    {/* TextField with label inside */}
+    <TextField
+      fullWidth
+      placeholder="Type your official disclaimer here..."
+      variant="outlined"
+      multiline
+      rows={5}
+      sx={{
+        '& .MuiOutlinedInput-root': {
+          borderRadius: '6px',
+        },
+        '& .MuiInputLabel-root': {
+          fontSize: '0.85rem',
+        },
+      }}
+    />
+  </Paper>
+</Grid>
+</Grid>
     </Box>
   );
 
