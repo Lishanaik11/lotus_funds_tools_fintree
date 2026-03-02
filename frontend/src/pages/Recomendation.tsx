@@ -484,19 +484,19 @@ const NewRecommendation = () => {
       setStopLoss2(item.stop_loss_2?.toString() || "");
       setStopLoss3(item.stop_loss_3?.toString() || "");
 
-  const getResearcherName = (item: Record<string, unknown>) => {
-    const getTextValue = (value: unknown) => (typeof value === "string" ? value : "");
+      // const getResearcherName = (item: Record<string, unknown>) => {
+      //   const getTextValue = (value: unknown) => (typeof value === "string" ? value : "");
 
-    return (
-      getTextValue(item.researcherName) ||
-      getTextValue(item.researcher) ||
-      getTextValue(item.researcher_name) ||
-      getTextValue(item.createdBy) ||
-      getTextValue(item.created_by) ||
-      getTextValue(item.username) ||
-      "-"
-    );
-  };
+      //   return (
+      //     getTextValue(item.researcherName) ||
+      //     getTextValue(item.researcher) ||
+      //     getTextValue(item.researcher_name) ||
+      //     getTextValue(item.createdBy) ||
+      //     getTextValue(item.created_by) ||
+      //     getTextValue(item.username) ||
+      //     "-"
+      //   );
+      // };
 
       setRationale(item.rationale || "");
       setExpiry(item.expiry_date || "");
@@ -1254,9 +1254,9 @@ const NewRecommendation = () => {
                     <TableCell sx={{ fontSize: '0.65rem', color: '#999', fontWeight: 700, px: 1, backgroundColor: '#fff' }}>
                       Recommendation
                     </TableCell>
-                    <TableCell sx={{ fontSize: '0.65rem', color: '#999', fontWeight: 700, px: 1, backgroundColor: '#fff' }}>
+                    {/* <TableCell sx={{ fontSize: '0.65rem', color: '#999', fontWeight: 700, px: 1, backgroundColor: '#fff' }}>
                       Researcher Name
-                    </TableCell>
+                    </TableCell> */}
                     <TableCell align="right" sx={{ fontSize: '0.65rem', color: '#999', fontWeight: 700, px: 1, backgroundColor: '#fff' }}>
                       Action
                     </TableCell>
@@ -1310,11 +1310,11 @@ const NewRecommendation = () => {
                             </Typography>
                           </TableCell>
 
-                          <TableCell sx={{ px: 1, py: 1.5 }}>
+                          {/* <TableCell sx={{ px: 1, py: 1.5 }}>
                             <Typography sx={{ fontSize: '0.7rem', color: '#333', fontWeight: 600 }}>
                               {getResearcherName(item)}
                             </Typography>
-                          </TableCell>
+                          </TableCell> */}
 
                           {/* Column 3: Action Buttons */}
                           <TableCell align="right" sx={{ px: 1, py: 1.5 }}>
