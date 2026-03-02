@@ -24,8 +24,7 @@ import {
 } from "@mui/material";
 import CloudUploadOutlinedIcon from "@mui/icons-material/CloudUploadOutlined";
 import { useRef, useState, useEffect, useMemo } from "react";
-
-import { startTransition } from "react";
+import { STOCK_DATA } from "../assets/stocks";
 import { useExpiryDates } from "../hooks/useExpiryDates";
 import { useStockAutocomplete } from "../hooks/useStockAutocomplete";
 import {
@@ -33,7 +32,7 @@ import {
   getRecentStudies,
 } from "../assets/UnderlyingStudy";
 import type { StudyOption } from "../assets/UnderlyingStudy";
-import axios from "axios";
+
 const BUY_COLOR = "#22c55e";
 const SELL_COLOR = "#ef4444";
 
@@ -49,24 +48,8 @@ const getActionStyles = (current: "BUY" | "SELL", button: "BUY" | "SELL") => {
     },
   };
 };
-const rootGridSx = {
-  display: "grid",
-  gridTemplateColumns: "3fr 1.5fr",
-  gap: 2,
-  height: "auto",
-  boxSizing: "border-box",
-};
-
-const FLAT_STUDY_OPTIONS = UNDERLYING_STUDIES.flatMap((g) =>
-  g.options.map((opt) => ({
-    ...opt,
-    group: g.group,
-  }))
-);
-
 
 const NewRecommendation = () => {
-  console.log("RENDER");
   const [exchangeType, setExchangeType] = useState("NSE");
   const [action, setAction] = useState<"BUY" | "SELL">("BUY");
   const [exchange, setExchange] = useState("STOCK");
@@ -79,34 +62,11 @@ const NewRecommendation = () => {
   const [underlyingStudyValue, setUnderlyingStudyValue] = useState<StudyOption | null>(null);
   const [underlyingStudyInput, setUnderlyingStudyInput] = useState("");
   const [recentStudyOptions, setRecentStudyOptions] = useState<StudyOption[]>([]);
-  // 🔹 Symbol
-  const [symbol, setSymbol] = useState("SYM");
-  const [display_name, setDisplay_name] = useState();
-  // 🔹 Entry Range
-  const [entryLow, setEntryLow] = useState("");
-  const [entryUpper, setEntryUpper] = useState("");
-
-  // 🔹 Secondary Targets
-  const [target2, setTarget2] = useState("");
-  const [target3, setTarget3] = useState("");
-
-  // 🔹 Secondary Stoploss
-  const [stopLoss2, setStopLoss2] = useState("");
-  const [stopLoss3, setStopLoss3] = useState("");
-
-  // 🔹 Holding Period
-  const [holdingPeriod, setHoldingPeriod] = useState(1);
-
-  // 🔹 Remarks
-  const [remark, setRemark] = useState("");
 
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   const [radioValue, setRadioValue] = useState("");
   const [expiry, setExpiry] = useState<string>("");
-
-  const [isErrataMode, setIsErrataMode] = useState(false);
-  const [errataSourceId, setErrataSourceId] = useState<string | null>(null);
 
   const panelBg = action === "BUY" ? "#eef9ee" : "#fee2e2";
   const panelBorder = action === "BUY" ? "#7ac77a" : SELL_COLOR;
@@ -130,151 +90,6 @@ const NewRecommendation = () => {
     "Secondary Target": false,
     "Stop Loss 2": false,
   });
-  const resetForm = () => {
-    setExchangeType("NSE");
-    setExchange("STOCK");
-    setAction("BUY");
-    setCallType("Cash");
-    setTradeType("Intraday");
-
-    setEntry("");
-    setTarget("");
-    setStopLoss("");
-    setTarget2("");
-    setTarget3("");
-    setStopLoss2("");
-    setStopLoss3("");
-
-    setRationale("");
-    setUnderlyingStudyValue(null);
-    setExpiry("");
-    setRemark("");
-    setRadioValue("");
-
-    setIsErrataMode(false);
-    setErrataSourceId(null);
-
-    setDirectValue("");
-  };
-
-
-  const handleSubmit = async () => {
-    try {
-      const token = localStorage.getItem("token");
-
-      if (!token) {
-        alert("Please login again");
-        return;
-      }
-
-      const finalDisplayName =
-        suggestion &&
-          suggestion.toLowerCase().startsWith(inputValue.toLowerCase())
-          ? suggestion
-          : inputValue;
-
-      const payload = {
-        exchange_type: exchangeType,
-        market_type: exchange,
-        symbol: "SYM",
-        display_name: finalDisplayName,
-        action,
-        call_type: callType,
-        trade_type: tradeType,
-        expiry_date: expiry || null,
-        entry_price: entry || null,
-        entry_price_low: null,
-        entry_price_upper: null,
-        target_price: target || null,
-        target_price_2: null,
-        target_price_3: null,
-        stop_loss: stopLoss || null,
-        stop_loss_2: null,
-        stop_loss_3: null,
-        holding_period: 1,
-        rationale,
-        underlying_study: underlyingStudyValue?.label || null,
-        is_algo: false,
-        has_vested_interest: false,
-        research_remarks: remark || undefined
-      };
-
-      let res;
-
-      if (isErrataMode && errataSourceId) {
-
-        // Build only fields that are allowed to be updated
-        const updates = {
-          entry_price: entry || undefined,
-          target_price: target || undefined,
-          stop_loss: stopLoss || undefined,
-          target_price_2: target2 || undefined,
-          target_price_3: target3 || undefined,
-          stop_loss_2: stopLoss2 || undefined,
-          stop_loss_3: stopLoss3 || undefined,
-          entry_price_low: entryLow || undefined,
-          entry_price_upper: entryUpper || undefined,
-          holding_period: holdingPeriod || undefined,
-          rationale: rationale || undefined,
-          underlying_study: underlyingStudyValue?.label || undefined,
-          research_remarks: remark || undefined,
-        };
-
-        res = await axios.post(
-          import.meta.env.VITE_API_URL + "/api/research/calls/errata",
-          {
-            call_id: errataSourceId,
-            updates,
-          },
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-          }
-        );
-
-
-        alert("Errata Created ✅");
-
-      } else {
-        // ✅ NORMAL CREATE
-        res = await axios.post(
-          import.meta.env.VITE_API_URL + "/api/research/calls",
-          payload,
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-          }
-        );
-
-        alert("Research Call Created ✅");
-      }
-
-      const createdCall = res.data.data || res.data;
-
-      // Update list with new version
-      setRecommendations((prev) => [
-        {
-          ...createdCall,
-          name: createdCall.display_name,
-        },
-        ...prev.filter((c) => c.id !== errataSourceId),
-      ]);
-
-      // Reset errata mode
-      setIsErrataMode(false);
-      setErrataSourceId(null);
-
-    } catch (err: any) {
-      console.error(err);
-      alert(err?.response?.data?.message || "Error submitting call");
-    }
-    await fetchRecommendations();
-    resetForm();
-  };
-
-
 
   const handleToggle = (label: string) => {
     setSwitches((prev) => ({ ...prev, [label]: !prev[label as keyof typeof switches] }));
@@ -292,25 +107,14 @@ const NewRecommendation = () => {
     exchangeType as any
   );
 
-  const autocomplete = useStockAutocomplete(exchangeType as "NSE" | "BSE");
-
   const {
     inputValue,
     suggestion,
-    setDirectValue,
-    matches,
+    options,
+    open,
     handleInputChange,
     handleKeyDown,
-  } = isErrataMode
-      ? {
-        inputValue: autocomplete.inputValue,
-        suggestion: "",
-        setDirectValue: autocomplete.setDirectValue,
-        matches: [],
-        handleInputChange: () => { },
-        handleKeyDown: () => { },
-      }
-      : autocomplete;
+  } = useStockAutocomplete(exchangeType as "NSE" | "BSE");
 
   // =============================
   // Underlying Study helpers
@@ -334,16 +138,22 @@ const NewRecommendation = () => {
   const studyOptions: StudyAutocompleteOption[] = useMemo(() => {
     const recentValues = new Set(recentStudyOptions.map((o) => o.value));
 
-    const recent = recentStudyOptions.map((o) => ({
+    const recent: StudyAutocompleteOption[] = recentStudyOptions.map((o) => ({
       ...o,
       group: "Recently Selected",
     }));
 
-    const base = FLAT_STUDY_OPTIONS.filter(
-      (opt) => !recentValues.has(opt.value)
+    const groupedBase: StudyAutocompleteOption[] = UNDERLYING_STUDIES.flatMap(
+      (g) =>
+        g.options
+          .filter((opt) => !recentValues.has(opt.value))
+          .map((opt) => ({
+            ...opt,
+            group: g.group,
+          }))
     );
 
-    return [...recent, ...base];
+    return [...recent, ...groupedBase];
   }, [recentStudyOptions]);
 
   const handleUnderlyingStudyChange = (
@@ -373,116 +183,67 @@ const NewRecommendation = () => {
   };
 
   useEffect(() => {
-    if (!expiryDates.length) {
+    if (expiryDates.length > 0) {
+      setExpiry(expiryDates[0].toISOString());
+    } else {
       setExpiry("");
-      return;
     }
-
-    const first = expiryDates[0].toISOString();
-
-    setExpiry(prev => (prev !== first ? first : prev));
-
   }, [expiryDates]);
 
   const [recommendations, setRecommendations] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const DATA_SOURCE =
-    import.meta.env.VITE_API_URL + "/api/research/calls/my";
-
-  const fetchRecommendations = async () => {
-    try {
-      setLoading(true);
-
-      const token = localStorage.getItem("token");
-
-      const response = await fetch(DATA_SOURCE, {
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-      });
-
-      if (!response.ok) {
-        throw new Error("Unauthorized or failed request");
-      }
-
-      const data = await response.json();
-
-      setRecommendations(Array.isArray(data) ? data : [data]);
-
-    } catch (error) {
-      console.error("Failed to fetch recommendations:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
+  const DATA_SOURCE = "/data.json";
 
   useEffect(() => {
+    const fetchRecommendations = async () => {
+      try {
+        setLoading(true);
+        const response = await fetch(DATA_SOURCE);
+        const data = await response.json();
+        // Handle both single object and array responses
+        setRecommendations(Array.isArray(data) ? data : [data]);
+      } catch (error) {
+        console.error("Failed to fetch recommendations:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
     fetchRecommendations();
   }, []);
 
   // 1. EXIT FUNCTION (Removes the item from the list)
-  const handleExit = async (id: string) => {
-    if (!window.confirm("Are you sure you want to exit this recommendation?")) {
-      return;
-    }
-
-    try {
-      const token = localStorage.getItem("token");
-      const DATA_SOURCE =
-        import.meta.env.VITE_API_URL + "/api/research/calls";
-      const response = await fetch(`${DATA_SOURCE}/${id}/exit`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-      });
-
-      if (!response.ok) {
-        throw new Error("Failed to exit recommendation");
-      }
-
-      // 🔥 Refetch updated list from backend
-      await fetchRecommendations();
-
-    } catch (error) {
-      console.error("Exit failed:", error);
+  const handleExit = (id: string) => {
+    if (window.confirm("Are you sure you want to exit this recommendation?")) {
+      // For now, we update the UI state. 
+      // Later, your Sir will add: await fetch(`${DATA_SOURCE}/${id}`, { method: 'DELETE' });
+      setRecommendations((prev) => prev.filter((item) => item.id !== id));
     }
   };
 
   // 2. MODIFY FUNCTION (Loads data back into the form)
   const handleModify = (item: any) => {
-    startTransition(() => {
-      setIsErrataMode(true);
-      setErrataSourceId(item.id);
+    // Populate all your left-panel states with the selected item's data
+    setExchangeType(item.exchange);
+    setAction(item.action);
+    setExchange(item.instrument);
+    setCallType(item.call_type);
+    setTradeType(item.trade_type);
 
-      setDirectValue(item.name || item.symbol || "");
+    // Note: Since entry is an object in your JSON {ideal: 2460}
+    setEntry(item.entry.ideal.toString());
+    setTarget(item.targets[0].toString());
+    setStopLoss(item.stop_losses[0].toString());
 
-      if (item.underlying_study) {
-        setUnderlyingStudyValue({
-          label: item.underlying_study,
-          value: item.underlying_study.toLowerCase().replace(/\s+/g, "_"),
-        });
-      } else {
-        setUnderlyingStudyValue(null);
-      }
+    // If you are using the Autocomplete hook:
+    // You might need to manually trigger the input change
+    // setInputValue(item.symbol); 
 
-      setExchangeType(item.exchange);
-      setExchange(item.instrument);
-      setAction(item.action);
-      setCallType(item.call_type);
-      setTradeType(item.trade_type);
+    setRationale(item.rationale);
 
-      setEntry(item.entry?.ideal?.toString() || "");
-      setTarget(item.targets?.[0]?.toString() || "");
-      setStopLoss(item.stop_losses?.[0]?.toString() || "");
-
-      setTarget2(item.target_price_2?.toString() || "");
-      setTarget3(item.target_price_3?.toString() || "");
-      setStopLoss2(item.stop_loss_2?.toString() || "");
-      setStopLoss3(item.stop_loss_3?.toString() || "");
+    // Scroll to top so the user sees the form is ready to edit
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
 
   const getResearcherName = (item: Record<string, unknown>) => {
     const getTextValue = (value: unknown) => (typeof value === "string" ? value : "");
@@ -498,12 +259,6 @@ const NewRecommendation = () => {
     );
   };
 
-      setRationale(item.rationale || "");
-      setExpiry(item.expiry_date || "");
-    });
-
-    window.scrollTo({ top: 0 });
-  };
   // Temporary
   const [wasValidated, setWasValidated] = useState(false);
   const validateAndPublish = (event) => {
@@ -520,135 +275,6 @@ const NewRecommendation = () => {
     if (isFormValid && isRadioValid) {
       handlePublish();
       setWasValidated(false);
-    }
-  };
-
-
-  /// populate 
-  useEffect(() => {
-    (window as any).populateForm = () => {
-      setExchangeType("NSE");
-      setExchange("STOCK");
-      setAction("BUY");
-      setCallType("Cash");
-      setTradeType("Intraday");
-
-      setEntry("250");
-      setTarget("270");
-      setStopLoss("240");
-
-      setExpiry("2026-03-28");
-
-      setRationale("Breakout above resistance");
-      setUnderlyingStudyValue({
-        label: "RSI + Volume Confirmation",
-        value: "rsi_volume"
-      });
-
-      console.log("Form Populated ✅");
-    };
-  }, []);
-
-
-  //instiate
-  const token = localStorage.getItem("token");
-  const handleInitiate = async (item: any) => {
-    try {
-      const token = localStorage.getItem("token");
-
-      await axios.patch(
-        `${import.meta.env.VITE_API_URL}/api/research/calls/${item.id}/publish`,
-        {},
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
-
-      setRecommendations((prev) =>
-        prev.map((rec) =>
-          rec.id === item.id
-            ? { ...rec, status: "PUBLISHED" }
-            : rec
-        )
-      );
-
-    } catch (error) {
-      console.error("Publish failed:", error);
-    }
-  };
-
-  const activeRecommendations = useMemo(
-    () => recommendations.filter((item) => item.status === "PUBLISHED"),
-    [recommendations]
-  );
-
-  const watchlistRecommendations = useMemo(
-    () => recommendations.filter((item) => item.status === "DRAFT"),
-    [recommendations]
-  );
-
-
-  const handleTrack = async () => {
-
-    const finalDisplayName =
-      typeof suggestion === "object" && suggestion !== null
-        ? suggestion.display_name
-        : inputValue.trim();
-
-    try {
-      const payload = {
-        status: "DRAFT",   // 👈 Add this line
-
-        exchange_type: exchangeType,
-        market_type: exchange,
-        symbol: "SYM",
-        display_name: finalDisplayName,
-        action,
-        call_type: callType,
-        trade_type: tradeType,
-        expiry_date: expiry || null,
-        entry_price: entry || null,
-        entry_price_low: null,
-        entry_price_upper: null,
-        target_price: target || null,
-        target_price_2: null,
-        target_price_3: null,
-        stop_loss: stopLoss || null,
-        stop_loss_2: null,
-        stop_loss_3: null,
-        holding_period: 1,
-        rationale,
-        underlying_study: underlyingStudyValue?.label || null,
-        is_algo: false,
-        has_vested_interest: false,
-        research_remarks: remark || undefined
-      };
-
-      const res = await axios.post(
-        import.meta.env.VITE_API_URL + "/api/research/calls",
-        payload,
-        {
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem("token")}`
-          }
-        }
-      );
-
-      // Update state instantly
-      const createdCall = res.data.data || res.data;
-
-      setRecommendations(prev => [
-        {
-          ...createdCall,
-          name: createdCall.display_name,
-        },
-        ...prev
-      ]);
-
-    } catch (err) {
-      console.error("Track failed:", err);
     }
   };
 
@@ -691,25 +317,7 @@ const NewRecommendation = () => {
           }
         }}
       >
-        {isErrataMode && (
-          <Box
-            sx={{
-              backgroundColor: "#fff3cd",
-              border: "1px solid #ffeeba",
-              color: "#856404",
-              px: 2,
-              py: 1,
-              borderRadius: 1,
-              mb: 1,
-              fontSize: "0.75rem",
-              fontWeight: 600
-            }}
-          >
-            You are creating an ERRATA for Call ID: {errataSourceId}
-          </Box>
-        )}
         <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", mb: 1 }}>
-
           <Typography variant="subtitle1" fontWeight={700} sx={{ fontSize: { xs: "0.9rem", sm: "1.1rem" } }}>
             New Recommendation
           </Typography>
@@ -859,18 +467,12 @@ const NewRecommendation = () => {
             )}
 
             <Autocomplete
-              disabled={isErrataMode}
               freeSolo
-              options={matches}
+              open={open}
+              options={options}
               inputValue={inputValue}
               onInputChange={handleInputChange}
               onKeyDown={handleKeyDown}
-              onChange={(_, newValue) => {
-                if (typeof newValue === "string" && newValue) {
-                  setDirectValue(newValue);
-                }
-              }}
-              isOptionEqualToValue={(option, value) => option === value}
               sx={{
                 flexGrow: 1,
                 zIndex: 1,
@@ -878,8 +480,8 @@ const NewRecommendation = () => {
               }}
               renderInput={(params) => (
                 <TextField
-                  {...params}
                   required
+                  {...params}
                   size="small"
                   placeholder={inputValue ? "" : "Script Name/Symbol"}
                   variant="outlined"
@@ -1136,16 +738,7 @@ const NewRecommendation = () => {
 
         {/* Remarks & Upload */}
         <Box sx={{ display: "flex", flexDirection: { xs: "column", sm: "row" }, gap: 1.5, mb: 2 }}>
-          <TextField
-            required
-            multiline
-            rows={2}
-            placeholder="Research Analyst's Remarks"
-            value={remark}
-            onChange={(e) => setRemark(e.target.value)}
-            sx={{ flexGrow: 1 }}
-          />
-
+          <TextField required multiline rows={2} placeholder="Research Analyst's Remarks" sx={{ flexGrow: 1 }} />
           <Box sx={{ display: "flex", flexDirection: "column", gap: 1, minWidth: { xs: "100%", sm: 160 } }}>
             <input
               required
@@ -1183,29 +776,9 @@ const NewRecommendation = () => {
           </Box>
         </Box>
 
-        <Box
-          sx={{
-            display: "flex",
-            gap: 2,
-            mt: 2,
-            justifyContent: "flex-start", // change to "space-between" if needed
-          }}
-        >
-          <Button
-            variant="contained"
-            onClick={handleSubmit}
-          >
-            {isErrataMode ? "Create Errata" : "Publish Call"}
-          </Button>
-
-          <Button
-            variant="outlined"
-            onClick={handleTrack}   // <-- create this function
-          >
-            Track
-          </Button>
-        </Box>
-
+        <Button type="submit" variant="contained" fullWidth sx={{ py: 1.5, fontWeight: 700, borderRadius: 2 }} onClick={validateAndPublish}>
+          Generate & Publish
+        </Button>
       </Paper>
 
       {/* RIGHT PANEL */}
@@ -1235,7 +808,7 @@ const NewRecommendation = () => {
                 border: '1px solid #e0e0e0'
               }}
             >
-              {activeRecommendations.length}
+              {recommendations.length}
             </Box>
           </Box>
 
@@ -1263,10 +836,9 @@ const NewRecommendation = () => {
                   </TableRow>
                 </TableHead>
                 <TableBody>
-                  {activeRecommendations.length > 0 ? (
-                    activeRecommendations.map((item) => {
+                  {recommendations.length > 0 ? (
+                    recommendations.map((item) => {
                       const dateObj = new Date(item.created_at);
-
                       return (
                         <TableRow
                           key={item.id}
@@ -1277,24 +849,9 @@ const NewRecommendation = () => {
                             <Typography sx={{ fontSize: '0.65rem', color: '#666', fontWeight: 500 }}>
                               {dateObj.toLocaleDateString()}
                             </Typography>
-
                             <Typography sx={{ fontSize: '0.65rem', color: '#999' }}>
                               {dateObj.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                             </Typography>
-
-                            {/* 🔥 Modified Label */}
-                            {item.version_type === "ERRATA" && (
-                              <Typography
-                                sx={{
-                                  fontSize: '0.6rem',
-                                  fontWeight: 700,
-                                  color: '#d97706',
-                                  mt: 0.3
-                                }}
-                              >
-                                Modified
-                              </Typography>
-                            )}
                           </TableCell>
 
                           {/* Column 2: Recommendation Details */}
@@ -1303,7 +860,7 @@ const NewRecommendation = () => {
                               {item.action} {item.instrument} {item.call_type?.toUpperCase()}
                             </Typography>
                             <Typography sx={{ fontSize: '0.65rem', color: '#333', fontWeight: 600 }}>
-                              {item.name} • {item.trade_type}
+                              {item.symbol} • {item.trade_type}
                             </Typography>
                             <Typography variant="caption" sx={{ fontSize: '0.65rem', color: '#999', mt: 0.5, display: 'block' }}>
                               @{item.entry?.ideal} | TP {item.targets?.join(', ')} | SL {item.stop_losses?.[0]}
@@ -1369,126 +926,9 @@ const NewRecommendation = () => {
             </TableContainer>
           )}
         </Paper>
-        <Paper sx={{ p: 2, overflow: 'hidden', borderRadius: 2, mt: 2 }}>
-          <Box
-            sx={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              mb: 2
-            }}
-          >
-            <Typography fontWeight={700} sx={{ fontSize: "0.9rem" }}>
-              Watchlist
-            </Typography>
-
-            <Box
-              sx={{
-                backgroundColor: '#f0f2f5',
-                color: '#000',
-                borderRadius: '6px',
-                px: 1.5,
-                py: 0.2,
-                fontSize: '0.75rem',
-                fontWeight: 700,
-                border: '1px solid #e0e0e0'
-              }}
-            >
-              {watchlistRecommendations.length}
-            </Box>
-          </Box>
-
-          <TableContainer sx={{ maxHeight: 400 }}>
-            <Table size="small" stickyHeader>
-              <TableHead>
-                <TableRow>
-                  <TableCell sx={{ fontSize: '0.65rem', color: '#999', fontWeight: 700, px: 1, backgroundColor: '#fff' }}>
-                    Published Date
-                  </TableCell>
-                  <TableCell sx={{ fontSize: '0.65rem', color: '#999', fontWeight: 700, px: 1, backgroundColor: '#fff' }}>
-                    Recommendation
-                  </TableCell>
-                  <TableCell align="right" sx={{ fontSize: '0.65rem', color: '#999', fontWeight: 700, px: 1, backgroundColor: '#fff' }}>
-                    Action
-                  </TableCell>
-                </TableRow>
-              </TableHead>
-
-              <TableBody>
-                {watchlistRecommendations.length > 0 ? (
-                  watchlistRecommendations.map((item) => {
-                    const dateObj = new Date(item.created_at);
-
-                    return (
-                      <TableRow
-                        key={item.id}
-                        sx={{
-                          '&:last-child td, &:last-child th': { border: 0 },
-                          '&:hover': { backgroundColor: '#fcfcfc' }
-                        }}
-                      >
-                        <TableCell sx={{ px: 1, py: 1.5 }}>
-                          <Typography sx={{ fontSize: '0.65rem', color: '#666', fontWeight: 500 }}>
-                            {dateObj.toLocaleDateString()}
-                          </Typography>
-                          <Typography sx={{ fontSize: '0.65rem', color: '#999' }}>
-                            {dateObj.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                          </Typography>
-                        </TableCell>
-
-                        <TableCell sx={{ px: 1, py: 1.5 }}>
-                          <Typography sx={{ fontSize: '0.75rem', fontWeight: 700, color: item.action === 'BUY' ? '#2e7d32' : '#d32f2f' }}>
-                            {item.action} {item.instrument} {item.call_type?.toUpperCase()}
-                          </Typography>
-
-                          <Typography sx={{ fontSize: '0.65rem', color: '#333', fontWeight: 600 }}>
-                            {item.name} • {item.trade_type}
-                          </Typography>
-
-                          <Typography variant="caption" sx={{ fontSize: '0.65rem', color: '#999', mt: 0.5, display: 'block' }}>
-                            @{item.entry?.ideal} | TP {item.targets?.join(', ')} | SL {item.stop_losses?.[0]}
-                          </Typography>
-                        </TableCell>
-
-                        {/* 🔥 Only Change Is Here */}
-                        <TableCell align="right" sx={{ px: 1, py: 1.5 }}>
-                          <Button
-                            size="small"
-                            onClick={() => handleInitiate(item)}
-                            disabled={item.status !== "DRAFT"}
-                            sx={{
-                              fontSize: '0.65rem',
-                              textTransform: 'none',
-                              color: '#1976d2',
-                              fontWeight: 700,
-                              minWidth: 'auto',
-                              p: 0,
-                              textAlign: 'right',
-                              justifyContent: 'flex-end',
-                              '&:hover': {
-                                backgroundColor: 'transparent',
-                                color: '#0d47a1'
-                              }
-                            }}
-                          >
-                            Initiate
-                          </Button>
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })
-                ) : (
-                  <TableRow>
-                    <TableCell colSpan={3} align="center" sx={{ py: 4, color: '#999', fontSize: '0.8rem' }}>
-                      No watchlist items.
-                    </TableCell>
-                  </TableRow>
-                )}
-              </TableBody>
-            </Table>
-          </TableContainer>
+        <Paper sx={{ p: 2 }}>
+          <Typography fontWeight={700} sx={{ fontSize: "0.9rem" }}>Watchlist</Typography>
         </Paper>
-
       </Box>
     </Box>
   );
