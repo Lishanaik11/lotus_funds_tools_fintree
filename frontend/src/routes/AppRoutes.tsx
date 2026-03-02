@@ -2,7 +2,7 @@ import { Routes, Route, Navigate } from "react-router-dom";
 import AppLayout from "../components/layout/AppLayout";
 import Dashboard from "../pages/Dashboard";
 import Signup from "../pages/common/Signup";
-import RegistrationPage from "../Registration_pages/RegistrationPage";
+import RegistrationPage from "../pages_registration/RegistrationPage";
 import Recommendations from "../pages/Recomendation";
 import Performance from "../pages/Performance";
 import AutomationLayout from "../components/layout_automation/AppLayout";
@@ -22,38 +22,44 @@ import ClientRecommendations from "../pages_client/Recomendation";
 import ClientPerformance from "../pages_client/Performance";
 import ClientNotFound from "../pages_client/Notfound";
 // import NotFound from "../pages/NotFound";
+import BrokerRegistration from "../pages_registration/BrokerRegistration";
+
+// --- NEW IMPORTS FOR MORNING REPORT ---
+import MorningReportBuilder from "../morning-report/MorningReportBuilder";
+import MorningReport from "../morning-report/MorningReport";
+import Logotheme from "../morning-report/Logotheme";
+import Generator from "../morning-report/Generator";
+import ProtectedRoute from "../components/ProtectedRoute";
 
 const AppRoutes = () => {
   return (
     <Routes>
-
-
+      {/* --- Auth & Public Routes --- */}
+      <Route path="/login" element={<LoginForm />} />
       <Route path="/signup" element={<Signup />} />
-      <Route path="/registration" element={<RegistrationPage />} />
-      <Route path="/signin" element={<LoginForm />} />
 
-
-      {/* ALL pages that need sidebar go here */}
-
-
-      <Route element={<AppLayout />}>
-        <Route path="/" element={<Dashboard />} />
-        <Route
-          path="/recommendations"
-          element={
-            localStorage.getItem("token")
-              ? <Recommendations />
-              : <Navigate to="/" />
-          }
-        />
-
-        <Route path="/performance" element={<Performance />} />
-
+      {/* --- Registration Workflow --- */}
+      <Route path="/registration">
+        <Route index element={<RegistrationPage />} />
+        <Route path="broker" element={<BrokerRegistration />} />
       </Route>
 
-      {/* Automation layout with its own sidebar/header */}
+      {/* --- 1. Main Dashboard Layout (Protected) --- */}
+      <Route element={<ProtectedRoute><AppLayout /></ProtectedRoute>}>
+        <Route path="/" element={<Dashboard />} />
+        <Route path="/recommendations" element={<Recommendations />} />
+        <Route path="/performance" element={<Performance />} />
+      </Route>
+
+      {/* --- 2. Morning Report Workflow (Full Screen) --- */}
+      <Route path="/morning-report-builder" element={<MorningReportBuilder />} />
+      <Route path="/morning-report-view" element={<MorningReport />} />
+      <Route path="/logo-theme" element={<Logotheme />} />
+      <Route path="/email-generator" element={<Generator />} />
+
+      {/* --- 3. Automation Layout --- */}
       <Route path="/automation" element={<AutomationLayout />}>
-        <Route index element={<Afternoon />} />
+        <Route index element={<Navigate to="Afternoon" replace />} />
         <Route path="Afternoon" element={<Afternoon />} />
         <Route path="Evening" element={<Evening />} />
         <Route path="Morning" element={<Morning />} />
@@ -61,10 +67,8 @@ const AppRoutes = () => {
         <Route path="Weekly" element={<Weekly />} />
       </Route>
 
-
-
-      {/* Admin layout */}
-      <Route path="/admin/*" element={<AdminLayout />}>
+      {/* --- 4. Admin Layout --- */}
+      <Route path="/admin" element={<AdminLayout />}>
         <Route index element={<AdminDashboard />} />
         <Route path="dashboard" element={<AdminDashboard />} />
         <Route path="recommendations" element={<AdminRecommendations />} />
@@ -84,6 +88,8 @@ const AppRoutes = () => {
 
       {/* Pages without sidebar (optional) */}
       {/* <Route path="*" element={<NotFound />} /> */}
+      {/* Catch-all for 404s */}
+      <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );
 };

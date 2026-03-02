@@ -13,9 +13,13 @@ app.use(express.json());
 app.use("/api", authRoutes);
 app.use("/api", researchRoutes);
 app.use("/api", debugRoutes);
+app.use("/api/auth", authRoutes);
+
 
 app.get("/api/health", (_req, res) => {
   res.json({ status: "OK" });
 });
+
+
 
 export default app;
