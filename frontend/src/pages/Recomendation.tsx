@@ -22,8 +22,9 @@ import {
   TableRow,
   CircularProgress,
 } from "@mui/material";
+import RecommendationsPanel from "../components/page_Mainapp/RecommendationsPanel";
 import CloudUploadOutlinedIcon from "@mui/icons-material/CloudUploadOutlined";
-import { useRef, useState, useEffect, useMemo } from "react";
+import { useRef, useState, useEffect, useMemo, useCallback } from "react";
 
 import { startTransition } from "react";
 import { useExpiryDates } from "../hooks/useExpiryDates";
@@ -99,11 +100,15 @@ const NewRecommendation = () => {
 
   // 🔹 Remarks
   const [remark, setRemark] = useState("");
+  const [expiry, setExpiry] = useState<string>("");
+
 
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
+
+
   const [radioValue, setRadioValue] = useState("");
-  const [expiry, setExpiry] = useState<string>("");
+
 
   const [isErrataMode, setIsErrataMode] = useState(false);
   const [errataSourceId, setErrataSourceId] = useState<string | null>(null);
@@ -183,15 +188,15 @@ const NewRecommendation = () => {
         trade_type: tradeType,
         expiry_date: expiry || null,
         entry_price: entry || null,
-        entry_price_low: null,
-        entry_price_upper: null,
+        entry_price_low: entryLow || null,
+        entry_price_upper: entryUpper || null,
         target_price: target || null,
-        target_price_2: null,
-        target_price_3: null,
+        target_price_2: target2 || null,
+        target_price_3: target3 || null,
         stop_loss: stopLoss || null,
-        stop_loss_2: null,
-        stop_loss_3: null,
-        holding_period: 1,
+        stop_loss_2: stopLoss2 || null,
+        stop_loss_3: stopLoss3 || null,
+        holding_period: holdingPeriod || null,
         rationale,
         underlying_study: underlyingStudyValue?.label || null,
         is_algo: false,
@@ -423,7 +428,7 @@ const NewRecommendation = () => {
   }, []);
 
   // 1. EXIT FUNCTION (Removes the item from the list)
-  const handleExit = async (id: string) => {
+  const handleExit = useCallback(async (id: string) => {
     if (!window.confirm("Are you sure you want to exit this recommendation?")) {
       return;
     }
@@ -450,11 +455,17 @@ const NewRecommendation = () => {
     } catch (error) {
       console.error("Exit failed:", error);
     }
-  };
+  }, []);
 
   // 2. MODIFY FUNCTION (Loads data back into the form)
-  const handleModify = (item: any) => {
+  const handleModify = useCallback((item) => {
     startTransition(() => {
+
+      setSwitches({
+        Range: Boolean(item.entry?.low || item.entry?.high),
+        "Secondary Target": Boolean(item.targets?.[1] || item.targets?.[2]),
+        "Stop Loss 2": Boolean(item.stop_losses?.[1] || item.stop_losses?.[2]),
+      });
       setIsErrataMode(true);
       setErrataSourceId(item.id);
 
@@ -474,15 +485,18 @@ const NewRecommendation = () => {
       setAction(item.action);
       setCallType(item.call_type);
       setTradeType(item.trade_type);
-
+      setExpiry(item.expiry_date?.toString() || "");
       setEntry(item.entry?.ideal?.toString() || "");
       setTarget(item.targets?.[0]?.toString() || "");
+      console.log(item)
       setStopLoss(item.stop_losses?.[0]?.toString() || "");
-
-      setTarget2(item.target_price_2?.toString() || "");
-      setTarget3(item.target_price_3?.toString() || "");
-      setStopLoss2(item.stop_loss_2?.toString() || "");
-      setStopLoss3(item.stop_loss_3?.toString() || "");
+      setRadioValue(item.holding_period?.toString() || "");
+      setEntryLow(item.entry?.low?.toString() || "");
+      setEntryUpper(item.entry?.high?.toString() || "");
+      setTarget2(item.targets?.[1]?.toString() || "");
+      setTarget3(item.targets?.[2]?.toString() || "");
+      setStopLoss2(item.stop_losses?.[1]?.toString() || "");
+      setStopLoss3(item.stop_losses?.[2]?.toString() || "");
 
       // const getResearcherName = (item: Record<string, unknown>) => {
       //   const getTextValue = (value: unknown) => (typeof value === "string" ? value : "");
@@ -503,7 +517,7 @@ const NewRecommendation = () => {
     });
 
     window.scrollTo({ top: 0 });
-  };
+  }, []);
   // Temporary
   const [wasValidated, setWasValidated] = useState(false);
   const validateAndPublish = (event) => {
@@ -527,23 +541,56 @@ const NewRecommendation = () => {
   /// populate 
   useEffect(() => {
     (window as any).populateForm = () => {
+      // 🔹 Basic
       setExchangeType("NSE");
       setExchange("STOCK");
       setAction("BUY");
       setCallType("Cash");
-      setTradeType("Intraday");
+      setTradeType("Short Term");
 
+      // 🔹 Symbol & Display
+      setSymbol("SYM");
+      setDirectValue("A.F. Enterprises Ltd");
+
+      // 🔹 Entry & Range
       setEntry("250");
-      setTarget("270");
-      setStopLoss("240");
+      setEntryLow("240");
+      setEntryUpper("260");
 
+      // 🔹 Targets
+      setTarget("270");
+      setTarget2("285");
+      setTarget3("300");
+
+      // 🔹 Stop Loss
+      setStopLoss("230");
+      setStopLoss2("220");
+      setStopLoss3("210");
+
+      // 🔹 Expiry
       setExpiry("2026-03-28");
 
-      setRationale("Breakout above resistance");
+      // 🔹 Holding Period (Radio)
+      setRadioValue("30 Days");
+
+      // 🔹 Rationale
+      setRationale("Break Out Play");
+
+      // 🔹 Underlying Study
       setUnderlyingStudyValue({
         label: "RSI + Volume Confirmation",
-        value: "rsi_volume"
+        value: "rsi_volume",
       });
+
+      // 🔹 Activate Toggles
+      setSwitches({
+        Range: true,
+        "Secondary Target": true,
+        "Stop Loss 2": true,
+      });
+
+      // 🔹 Remarks
+      setRemark("Strong breakout with volume confirmation.");
 
       console.log("Form Populated ✅");
     };
@@ -552,7 +599,7 @@ const NewRecommendation = () => {
 
   //instiate
   const token = localStorage.getItem("token");
-  const handleInitiate = async (item: any) => {
+  const handleInitiate = useCallback(async (item: any) => {
     try {
       const token = localStorage.getItem("token");
 
@@ -577,81 +624,85 @@ const NewRecommendation = () => {
     } catch (error) {
       console.error("Publish failed:", error);
     }
-  };
+  }, []);
 
-  const activeRecommendations = useMemo(
-    () => recommendations.filter((item) => item.status === "PUBLISHED"),
-    [recommendations]
-  );
-
-  const watchlistRecommendations = useMemo(
-    () => recommendations.filter((item) => item.status === "DRAFT"),
-    [recommendations]
-  );
 
 
   const handleTrack = async () => {
-
-    const finalDisplayName =
-      typeof suggestion === "object" && suggestion !== null
-        ? suggestion.display_name
-        : inputValue.trim();
-
     try {
+      const finalDisplayName =
+        typeof suggestion === "object" && suggestion !== null
+          ? suggestion.display_name
+          : inputValue.trim();
+
       const payload = {
-        status: "DRAFT",   // 👈 Add this line
+        status: "DRAFT",
 
         exchange_type: exchangeType,
         market_type: exchange,
-        symbol: "SYM",
+        symbol: symbol || finalDisplayName,
         display_name: finalDisplayName,
+
         action,
         call_type: callType,
         trade_type: tradeType,
         expiry_date: expiry || null,
+
+        // 🔹 Entry
         entry_price: entry || null,
-        entry_price_low: null,
-        entry_price_upper: null,
+        entry_price_low: switches.Range ? entryLow || null : null,
+        entry_price_upper: switches.Range ? entryUpper || null : null,
+
+        // 🔹 Targets
         target_price: target || null,
-        target_price_2: null,
-        target_price_3: null,
+        target_price_2: switches["Secondary Target"]
+          ? target2 || null
+          : null,
+        target_price_3: switches["Secondary Target"]
+          ? target3 || null
+          : null,
+
+        // 🔹 Stop Loss
         stop_loss: stopLoss || null,
-        stop_loss_2: null,
-        stop_loss_3: null,
-        holding_period: 1,
+        stop_loss_2: switches["Stop Loss 2"]
+          ? stopLoss2 || null
+          : null,
+        stop_loss_3: switches["Stop Loss 2"]
+          ? stopLoss3 || null
+          : null,
+
+        holding_period: radioValue || null,
+
         rationale,
         underlying_study: underlyingStudyValue?.label || null,
+
         is_algo: false,
         has_vested_interest: false,
-        research_remarks: remark || undefined
+        research_remarks: remark || null,
       };
 
-      const res = await axios.post(
-        import.meta.env.VITE_API_URL + "/api/research/calls",
+      console.log("TRACK PAYLOAD:", payload);
+
+      await axios.post(
+        `${import.meta.env.VITE_API_URL}/api/research/calls`,
         payload,
         {
           headers: {
-            Authorization: `Bearer ${localStorage.getItem("token")}`
-          }
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+          },
         }
       );
 
-      // Update state instantly
-      const createdCall = res.data.data || res.data;
+      // 🔥 IMPORTANT: Refetch because backend does not return full object
+      await fetchRecommendations();
 
-      setRecommendations(prev => [
-        {
-          ...createdCall,
-          name: createdCall.display_name,
-        },
-        ...prev
-      ]);
+      // Optional: Reset form after tracking
+      // resetForm();
 
-    } catch (err) {
-      console.error("Track failed:", err);
+    } catch (err: any) {
+      console.error("Track failed:", err?.response?.data || err);
     }
   };
-
   return (
     <Box
       sx={{
@@ -926,56 +977,169 @@ const NewRecommendation = () => {
         </Box>
 
         {/* Switched Options Row */}
-        <Box sx={{
-          display: "flex",
-          flexDirection: { xs: "column", md: "row" },
-          justifyContent: "space-between",
-          mb: 1,
-          gap: { xs: 2, md: 1.5 }
-        }}>
+        <Box
+          sx={{
+            display: "flex",
+            flexDirection: { xs: "column", md: "row" },
+            justifyContent: "space-between",
+            mb: 1,
+            gap: { xs: 2, md: 1.5 },
+          }}
+        >
           {["Range", "Secondary Target", "Stop Loss 2"].map((label) => {
             const isActive = switches[label as keyof typeof switches];
-            let p1 = "Disabled", p2 = "Disabled";
-            if (label === "Range") { p1 = "Lower Entry"; p2 = "Upper Entry"; }
-            if (label === "Secondary Target") { p1 = "T2"; p2 = "T3"; }
-            if (label === "Stop Loss 2") { p1 = "SL2"; p2 = "SL3"; }
+
+            let p1 = "Disabled",
+              p2 = "Disabled";
+
+            if (label === "Range") {
+              p1 = "Lower Entry";
+              p2 = "Upper Entry";
+            }
+            if (label === "Secondary Target") {
+              p1 = "T2";
+              p2 = "T3";
+            }
+            if (label === "Stop Loss 2") {
+              p1 = "SL2";
+              p2 = "SL3";
+            }
+
+            // 🔥 Map correct state per section
+            let value1 = "";
+            let value2 = "";
+            let setter1 = (v: string) => { };
+            let setter2 = (v: string) => { };
+
+            if (label === "Range") {
+              value1 = entryLow;
+              value2 = entryUpper;
+              setter1 = setEntryLow;
+              setter2 = setEntryUpper;
+            }
+
+            if (label === "Secondary Target") {
+              value1 = target2;
+              value2 = target3;
+              setter1 = setTarget2;
+              setter2 = setTarget3;
+            }
+
+            if (label === "Stop Loss 2") {
+              value1 = stopLoss2;
+              value2 = stopLoss3;
+              setter1 = setStopLoss2;
+              setter2 = setStopLoss3;
+            }
 
             return (
-              <Box key={label} sx={{
-                textAlign: 'center',
-                flex: 1,
-                border: { xs: '1px solid rgba(0,0,0,0.1)', md: 'none' },
-                borderRadius: 1,
-                p: 1
-              }}>
-                <Box sx={{ display: "flex", alignItems: "center", justifyContent: 'center', gap: 1, mb: 1 }}>
-                  <Typography sx={{ fontSize: '0.75rem', fontWeight: 700 }}>{label}</Typography>
-                  <Switch size="small" checked={isActive} onChange={() => handleToggle(label)} />
+              <Box
+                key={label}
+                sx={{
+                  textAlign: "center",
+                  flex: 1,
+                  border: { xs: "1px solid rgba(0,0,0,0.1)", md: "none" },
+                  borderRadius: 1,
+                  p: 1,
+                }}
+              >
+                {/* Header */}
+                <Box
+                  sx={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    gap: 1,
+                    mb: 1,
+                  }}
+                >
+                  <Typography sx={{ fontSize: "0.75rem", fontWeight: 700 }}>
+                    {label}
+                  </Typography>
+                  <Switch
+                    size="small"
+                    checked={isActive}
+                    onChange={() => handleToggle(label)}
+                  />
                 </Box>
 
-                <Box sx={{ display: "flex", gap: 1, justifyContent: 'center' }}>
+                {/* Inputs */}
+                <Box sx={{ display: "flex", gap: 1, justifyContent: "center" }}>
                   {isActive ? (
                     <>
                       <TextField
-                        placeholder={p1} size="small" variant="outlined"
-                        sx={{ flex: 1, "& .MuiInputBase-input": { py: 1, fontSize: '0.7rem', textAlign: 'center' } }}
+                        value={value1}
+                        onChange={(e) => setter1(e.target.value)}
+                        placeholder={p1}
+                        size="small"
+                        variant="outlined"
+                        sx={{
+                          flex: 1,
+                          "& .MuiInputBase-input": {
+                            py: 1,
+                            fontSize: "0.7rem",
+                            textAlign: "center",
+                          },
+                        }}
                       />
                       <TextField
-                        placeholder={p2} size="small" variant="outlined"
-                        sx={{ flex: 1, "& .MuiInputBase-input": { py: 1, fontSize: '0.7rem', textAlign: 'center' } }}
+                        value={value2}
+                        onChange={(e) => setter2(e.target.value)}
+                        placeholder={p2}
+                        size="small"
+                        variant="outlined"
+                        sx={{
+                          flex: 1,
+                          "& .MuiInputBase-input": {
+                            py: 1,
+                            fontSize: "0.7rem",
+                            textAlign: "center",
+                          },
+                        }}
                       />
                     </>
                   ) : (
                     <>
-                      <Button size="small" variant="outlined"
+                      <Button
+                        size="small"
+                        variant="outlined"
                         sx={{
-                          py: 0, fontSize: '0.6rem', flex: 1, height: 24, color: "#9ca3af", borderColor: "#e5e7eb", backgroundColor: "#e1e6eaf7", textTransform: "none",
-                          "&:hover": { backgroundColor: "#f3f4f6", borderColor: "#d1d5db" }
-                        }}> Disabled </Button>
-                      <Button size="small" variant="outlined" sx={{
-                        py: 0, fontSize: '0.6rem', flex: 1, height: 24, color: "#9ca3af", borderColor: "#e5e7eb", backgroundColor: "#e1e6eaf7", textTransform: "none",
-                        "&:hover": { backgroundColor: "#f3f4f6", borderColor: "#d1d5db" }
-                      }}> Disabled </Button>
+                          py: 0,
+                          fontSize: "0.6rem",
+                          flex: 1,
+                          height: 24,
+                          color: "#9ca3af",
+                          borderColor: "#e5e7eb",
+                          backgroundColor: "#e1e6eaf7",
+                          textTransform: "none",
+                          "&:hover": {
+                            backgroundColor: "#f3f4f6",
+                            borderColor: "#d1d5db",
+                          },
+                        }}
+                      >
+                        Disabled
+                      </Button>
+                      <Button
+                        size="small"
+                        variant="outlined"
+                        sx={{
+                          py: 0,
+                          fontSize: "0.6rem",
+                          flex: 1,
+                          height: 24,
+                          color: "#9ca3af",
+                          borderColor: "#e5e7eb",
+                          backgroundColor: "#e1e6eaf7",
+                          textTransform: "none",
+                          "&:hover": {
+                            backgroundColor: "#f3f4f6",
+                            borderColor: "#d1d5db",
+                          },
+                        }}
+                      >
+                        Disabled
+                      </Button>
                     </>
                   )}
                 </Box>
@@ -1208,288 +1372,16 @@ const NewRecommendation = () => {
 
       </Paper>
 
+      <RecommendationsPanel
+        loading={loading}
+        recommendations={recommendations}
+        onModify={handleModify}
+        onExit={handleExit}
+        onInitiate={handleInitiate}
+      />
+
       {/* RIGHT PANEL */}
-      <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
-        {/* UPDATED ACTIVE RECOMMENDATIONS PAPER */}
-        <Paper sx={{ p: 2, overflow: 'hidden', borderRadius: 2 }}>
-          {/* Header Section: Title + Counter */}
-          <Box sx={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            mb: 2
-          }}>
-            <Typography fontWeight={700} sx={{ fontSize: "0.9rem" }}>
-              Active Recommendations
-            </Typography>
 
-            <Box
-              sx={{
-                backgroundColor: '#f0f2f5', // Light grey background for the badge
-                color: '#000',
-                borderRadius: '6px',
-                px: 1.5,
-                py: 0.2,
-                fontSize: '0.75rem',
-                fontWeight: 700,
-                border: '1px solid #e0e0e0'
-              }}
-            >
-              {activeRecommendations.length}
-            </Box>
-          </Box>
-
-          {loading ? (
-            <Box sx={{ display: 'flex', justifyContent: 'center', py: 5 }}>
-              <CircularProgress size={24} />
-            </Box>
-          ) : (
-            <TableContainer sx={{ maxHeight: 400 }}>
-              <Table size="small" stickyHeader>
-                <TableHead>
-                  <TableRow>
-                    <TableCell sx={{ fontSize: '0.65rem', color: '#999', fontWeight: 700, px: 1, backgroundColor: '#fff' }}>
-                      Published Date
-                    </TableCell>
-                    <TableCell sx={{ fontSize: '0.65rem', color: '#999', fontWeight: 700, px: 1, backgroundColor: '#fff' }}>
-                      Recommendation
-                    </TableCell>
-                    {/* <TableCell sx={{ fontSize: '0.65rem', color: '#999', fontWeight: 700, px: 1, backgroundColor: '#fff' }}>
-                      Researcher Name
-                    </TableCell> */}
-                    <TableCell align="right" sx={{ fontSize: '0.65rem', color: '#999', fontWeight: 700, px: 1, backgroundColor: '#fff' }}>
-                      Action
-                    </TableCell>
-                  </TableRow>
-                </TableHead>
-                <TableBody>
-                  {activeRecommendations.length > 0 ? (
-                    activeRecommendations.map((item) => {
-                      const dateObj = new Date(item.created_at);
-
-                      return (
-                        <TableRow
-                          key={item.id}
-                          sx={{ '&:last-child td, &:last-child th': { border: 0 }, '&:hover': { backgroundColor: '#fcfcfc' } }}
-                        >
-                          {/* Column 1: Date & Time */}
-                          <TableCell sx={{ px: 1, py: 1.5 }}>
-                            <Typography sx={{ fontSize: '0.65rem', color: '#666', fontWeight: 500 }}>
-                              {dateObj.toLocaleDateString()}
-                            </Typography>
-
-                            <Typography sx={{ fontSize: '0.65rem', color: '#999' }}>
-                              {dateObj.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                            </Typography>
-
-                            {/* 🔥 Modified Label */}
-                            {item.version_type === "ERRATA" && (
-                              <Typography
-                                sx={{
-                                  fontSize: '0.6rem',
-                                  fontWeight: 700,
-                                  color: '#d97706',
-                                  mt: 0.3
-                                }}
-                              >
-                                Modified
-                              </Typography>
-                            )}
-                          </TableCell>
-
-                          {/* Column 2: Recommendation Details */}
-                          <TableCell sx={{ px: 1, py: 1.5 }}>
-                            <Typography sx={{ fontSize: '0.75rem', fontWeight: 700, color: item.action === 'BUY' ? '#2e7d32' : '#d32f2f' }}>
-                              {item.action} {item.instrument} {item.call_type?.toUpperCase()}
-                            </Typography>
-                            <Typography sx={{ fontSize: '0.65rem', color: '#333', fontWeight: 600 }}>
-                              {item.name} • {item.trade_type}
-                            </Typography>
-                            <Typography variant="caption" sx={{ fontSize: '0.65rem', color: '#999', mt: 0.5, display: 'block' }}>
-                              @{item.entry?.ideal} | TP {item.targets?.join(', ')} | SL {item.stop_losses?.[0]}
-                            </Typography>
-                          </TableCell>
-
-                          {/* <TableCell sx={{ px: 1, py: 1.5 }}>
-                            <Typography sx={{ fontSize: '0.7rem', color: '#333', fontWeight: 600 }}>
-                              {getResearcherName(item)}
-                            </Typography>
-                          </TableCell> */}
-
-                          {/* Column 3: Action Buttons */}
-                          <TableCell align="right" sx={{ px: 1, py: 1.5 }}>
-                            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
-                              <Button
-                                size="small"
-                                onClick={() => handleModify(item)}
-                                sx={{
-                                  fontSize: '0.6rem',
-                                  textTransform: 'none',
-                                  color: '#757575',
-                                  minWidth: 'auto',
-                                  p: 0,
-                                  textAlign: 'right',
-                                  justifyContent: 'flex-end',
-                                  '&:hover': { backgroundColor: 'transparent', textDecoration: 'underline' }
-                                }}
-                              >
-                                Modify/Errata
-                              </Button>
-                              <Button
-                                size="small"
-                                onClick={() => handleExit(item.id)}
-                                sx={{
-                                  fontSize: '0.65rem',
-                                  textTransform: 'none',
-                                  color: '#6200ea',
-                                  fontWeight: 800,
-                                  minWidth: 'auto',
-                                  p: 0,
-                                  textAlign: 'right',
-                                  justifyContent: 'flex-end',
-                                  '&:hover': { backgroundColor: 'transparent', color: '#4500a0' }
-                                }}
-                              >
-                                Exit
-                              </Button>
-                            </Box>
-                          </TableCell>
-                        </TableRow>
-                      );
-                    })
-                  ) : (
-                    <TableRow>
-                      <TableCell colSpan={4} align="center" sx={{ py: 4, color: '#999', fontSize: '0.8rem' }}>
-                        No active recommendations.
-                      </TableCell>
-                    </TableRow>
-                  )}
-                </TableBody>
-              </Table>
-            </TableContainer>
-          )}
-        </Paper>
-        <Paper sx={{ p: 2, overflow: 'hidden', borderRadius: 2, mt: 2 }}>
-          <Box
-            sx={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              mb: 2
-            }}
-          >
-            <Typography fontWeight={700} sx={{ fontSize: "0.9rem" }}>
-              Watchlist
-            </Typography>
-
-            <Box
-              sx={{
-                backgroundColor: '#f0f2f5',
-                color: '#000',
-                borderRadius: '6px',
-                px: 1.5,
-                py: 0.2,
-                fontSize: '0.75rem',
-                fontWeight: 700,
-                border: '1px solid #e0e0e0'
-              }}
-            >
-              {watchlistRecommendations.length}
-            </Box>
-          </Box>
-
-          <TableContainer sx={{ maxHeight: 400 }}>
-            <Table size="small" stickyHeader>
-              <TableHead>
-                <TableRow>
-                  <TableCell sx={{ fontSize: '0.65rem', color: '#999', fontWeight: 700, px: 1, backgroundColor: '#fff' }}>
-                    Published Date
-                  </TableCell>
-                  <TableCell sx={{ fontSize: '0.65rem', color: '#999', fontWeight: 700, px: 1, backgroundColor: '#fff' }}>
-                    Recommendation
-                  </TableCell>
-                  <TableCell align="right" sx={{ fontSize: '0.65rem', color: '#999', fontWeight: 700, px: 1, backgroundColor: '#fff' }}>
-                    Action
-                  </TableCell>
-                </TableRow>
-              </TableHead>
-
-              <TableBody>
-                {watchlistRecommendations.length > 0 ? (
-                  watchlistRecommendations.map((item) => {
-                    const dateObj = new Date(item.created_at);
-
-                    return (
-                      <TableRow
-                        key={item.id}
-                        sx={{
-                          '&:last-child td, &:last-child th': { border: 0 },
-                          '&:hover': { backgroundColor: '#fcfcfc' }
-                        }}
-                      >
-                        <TableCell sx={{ px: 1, py: 1.5 }}>
-                          <Typography sx={{ fontSize: '0.65rem', color: '#666', fontWeight: 500 }}>
-                            {dateObj.toLocaleDateString()}
-                          </Typography>
-                          <Typography sx={{ fontSize: '0.65rem', color: '#999' }}>
-                            {dateObj.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                          </Typography>
-                        </TableCell>
-
-                        <TableCell sx={{ px: 1, py: 1.5 }}>
-                          <Typography sx={{ fontSize: '0.75rem', fontWeight: 700, color: item.action === 'BUY' ? '#2e7d32' : '#d32f2f' }}>
-                            {item.action} {item.instrument} {item.call_type?.toUpperCase()}
-                          </Typography>
-
-                          <Typography sx={{ fontSize: '0.65rem', color: '#333', fontWeight: 600 }}>
-                            {item.name} • {item.trade_type}
-                          </Typography>
-
-                          <Typography variant="caption" sx={{ fontSize: '0.65rem', color: '#999', mt: 0.5, display: 'block' }}>
-                            @{item.entry?.ideal} | TP {item.targets?.join(', ')} | SL {item.stop_losses?.[0]}
-                          </Typography>
-                        </TableCell>
-
-                        {/* 🔥 Only Change Is Here */}
-                        <TableCell align="right" sx={{ px: 1, py: 1.5 }}>
-                          <Button
-                            size="small"
-                            onClick={() => handleInitiate(item)}
-                            disabled={item.status !== "DRAFT"}
-                            sx={{
-                              fontSize: '0.65rem',
-                              textTransform: 'none',
-                              color: '#1976d2',
-                              fontWeight: 700,
-                              minWidth: 'auto',
-                              p: 0,
-                              textAlign: 'right',
-                              justifyContent: 'flex-end',
-                              '&:hover': {
-                                backgroundColor: 'transparent',
-                                color: '#0d47a1'
-                              }
-                            }}
-                          >
-                            Initiate
-                          </Button>
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })
-                ) : (
-                  <TableRow>
-                    <TableCell colSpan={3} align="center" sx={{ py: 4, color: '#999', fontSize: '0.8rem' }}>
-                      No watchlist items.
-                    </TableCell>
-                  </TableRow>
-                )}
-              </TableBody>
-            </Table>
-          </TableContainer>
-        </Paper>
-
-      </Box>
     </Box>
   );
 };
