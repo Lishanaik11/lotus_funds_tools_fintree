@@ -14,18 +14,11 @@ import {
   ToggleButton,
   ToggleButtonGroup,
   Typography,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  CircularProgress,
 } from "@mui/material";
 import RecommendationsPanel from "../components/page_Mainapp/RecommendationsPanel";
 import CloudUploadOutlinedIcon from "@mui/icons-material/CloudUploadOutlined";
-import { useRef, useState, useEffect, useMemo, useCallback } from "react";
-
+import { useRef, useState, useEffect, useMemo, useCallback, useReducer } from "react";
+import { FormHelperText } from "@mui/material";
 import { startTransition } from "react";
 import { useExpiryDates } from "../hooks/useExpiryDates";
 import { useStockAutocomplete } from "../hooks/useStockAutocomplete";
@@ -67,54 +60,19 @@ const FLAT_STUDY_OPTIONS = UNDERLYING_STUDIES.flatMap((g) =>
 
 
 const NewRecommendation = () => {
+
+
+
+
   console.log("RENDER");
-  const [exchangeType, setExchangeType] = useState("NSE");
-  const [action, setAction] = useState<"BUY" | "SELL">("BUY");
-  const [exchange, setExchange] = useState("STOCK");
-  const [callType, setCallType] = useState("Cash");
-  const [entry, setEntry] = useState("");
-  const [target, setTarget] = useState("");
-  const [stopLoss, setStopLoss] = useState("");
-  const [rationale, setRationale] = useState("Overbought Condition");
-  const [tradeType, setTradeType] = useState("Intraday");
-  const [underlyingStudyValue, setUnderlyingStudyValue] = useState<StudyOption | null>(null);
   const [underlyingStudyInput, setUnderlyingStudyInput] = useState("");
   const [recentStudyOptions, setRecentStudyOptions] = useState<StudyOption[]>([]);
-  // 🔹 Symbol
-  const [symbol, setSymbol] = useState("SYM");
-  const [display_name, setDisplay_name] = useState();
-  // 🔹 Entry Range
-  const [entryLow, setEntryLow] = useState("");
-  const [entryUpper, setEntryUpper] = useState("");
-
-  // 🔹 Secondary Targets
-  const [target2, setTarget2] = useState("");
-  const [target3, setTarget3] = useState("");
-
-  // 🔹 Secondary Stoploss
-  const [stopLoss2, setStopLoss2] = useState("");
-  const [stopLoss3, setStopLoss3] = useState("");
-
-  // 🔹 Holding Period
-  const [holdingPeriod, setHoldingPeriod] = useState(1);
-
-  // 🔹 Remarks
-  const [remark, setRemark] = useState("");
-  const [expiry, setExpiry] = useState<string>("");
-
 
   const fileInputRef = useRef<HTMLInputElement | null>(null);
-
-
-
-  const [radioValue, setRadioValue] = useState("");
-
 
   const [isErrataMode, setIsErrataMode] = useState(false);
   const [errataSourceId, setErrataSourceId] = useState<string | null>(null);
 
-  const panelBg = action === "BUY" ? "#eef9ee" : "#fee2e2";
-  const panelBorder = action === "BUY" ? "#7ac77a" : SELL_COLOR;
 
   const transparentInputSx = {
     backgroundColor: "transparent",
@@ -130,35 +88,94 @@ const NewRecommendation = () => {
     }
   };
 
-  const [switches, setSwitches] = useState({
-    Range: false,
-    "Secondary Target": false,
-    "Stop Loss 2": false,
-  });
+  type RecommendationForm = {
+    exchangeType: "NSE" | "BSE";
+    action: "BUY" | "SELL";
+    exchange: "STOCK" | "INDEX";
+    callType: "Cash" | "Futures" | "Option Call" | "Option Put";
+    tradeType: "Intraday" | "BTST" | "STBT" | "Short Term" | "Long Term";
+    symbol: string;
+    display_name: string;
+    entry: string;
+    entryLow: string;
+    entryUpper: string;
+    target: string;
+    target2: string;
+    target3: string;
+    stopLoss: string;
+    stopLoss2: string;
+    stopLoss3: string;
+    expiry: string;
+    holdingPeriod: string;
+    rationale: string;
+    remark: string;
+    underlyingStudy: StudyOption | null;
+    rangeEnabled: boolean;
+    secondaryTargetEnabled: boolean;
+    stopLoss2Enabled: boolean;
+  };
+
+  const initialForm: RecommendationForm = {
+    exchangeType: "NSE",
+    action: "BUY",
+    exchange: "STOCK",
+    callType: "Cash",
+    tradeType: "Intraday",
+    symbol: "SYM",
+    display_name: "",
+    entry: "",
+    entryLow: "",
+    entryUpper: "",
+    target: "",
+    target2: "",
+    target3: "",
+    stopLoss: "",
+    stopLoss2: "",
+    stopLoss3: "",
+    expiry: "",
+    holdingPeriod: "",
+    rationale: "Overbought Condition",
+    remark: "",
+    underlyingStudy: null,
+    rangeEnabled: false,
+    secondaryTargetEnabled: false,
+    stopLoss2Enabled: false,
+  };
+
+  type FormAction =
+    | {
+      type: "SET_FIELD";
+      field: keyof RecommendationForm;
+      value: RecommendationForm[keyof RecommendationForm];
+    }
+    | { type: "SET_FORM"; payload: Partial<RecommendationForm> }
+    | { type: "RESET" };
+
+  function formReducer(
+    state: RecommendationForm,
+    action: FormAction
+  ): RecommendationForm {
+    switch (action.type) {
+      case "SET_FIELD":
+        return { ...state, [action.field]: action.value };
+      case "SET_FORM":
+        return { ...state, ...action.payload };
+      case "RESET":
+        return initialForm;
+      default:
+        return state;
+    }
+  }
+
+  const [form, dispatch] = useReducer(formReducer, initialForm);
+
+  const panelBg = form.action === "BUY" ? "#eef9ee" : "#fee2e2";
+  const panelBorder = form.action === "BUY" ? "#7ac77a" : SELL_COLOR;
+
   const resetForm = () => {
-    setExchangeType("NSE");
-    setExchange("STOCK");
-    setAction("BUY");
-    setCallType("Cash");
-    setTradeType("Intraday");
-
-    setEntry("");
-    setTarget("");
-    setStopLoss("");
-    setTarget2("");
-    setTarget3("");
-    setStopLoss2("");
-    setStopLoss3("");
-
-    setRationale("");
-    setUnderlyingStudyValue(null);
-    setExpiry("");
-    setRemark("");
-    setRadioValue("");
-
+    dispatch({ type: "RESET" });
     setIsErrataMode(false);
     setErrataSourceId(null);
-
     setDirectValue("");
   };
 
@@ -179,29 +196,29 @@ const NewRecommendation = () => {
           : inputValue;
 
       const payload = {
-        exchange_type: exchangeType,
-        market_type: exchange,
+        exchange_type: form.exchangeType,
+        market_type: form.exchange,
         symbol: "SYM",
         display_name: finalDisplayName,
-        action,
-        call_type: callType,
-        trade_type: tradeType,
-        expiry_date: expiry || null,
-        entry_price: entry || null,
-        entry_price_low: entryLow || null,
-        entry_price_upper: entryUpper || null,
-        target_price: target || null,
-        target_price_2: target2 || null,
-        target_price_3: target3 || null,
-        stop_loss: stopLoss || null,
-        stop_loss_2: stopLoss2 || null,
-        stop_loss_3: stopLoss3 || null,
-        holding_period: holdingPeriod || null,
-        rationale,
-        underlying_study: underlyingStudyValue?.label || null,
+        action: form.action,
+        call_type: form.callType,
+        trade_type: form.tradeType,
+        expiry_date: form.expiry || null,
+        entry_price: form.entry || null,
+        entry_price_low: form.entryLow || null,
+        entry_price_upper: form.entryUpper || null,
+        target_price: form.target || null,
+        target_price_2: form.target2 || null,
+        target_price_3: form.target3 || null,
+        stop_loss: form.stopLoss || null,
+        stop_loss_2: form.stopLoss2 || null,
+        stop_loss_3: form.stopLoss3 || null,
+        holding_period: form.holdingPeriod || null,
+        rationale: form.rationale,
+        underlying_study: form.underlyingStudy?.label || null,
         is_algo: false,
         has_vested_interest: false,
-        research_remarks: remark || undefined
+        research_remarks: form.remark || undefined
       };
 
       let res;
@@ -210,19 +227,19 @@ const NewRecommendation = () => {
 
         // Build only fields that are allowed to be updated
         const updates = {
-          entry_price: entry || undefined,
-          target_price: target || undefined,
-          stop_loss: stopLoss || undefined,
-          target_price_2: target2 || undefined,
-          target_price_3: target3 || undefined,
-          stop_loss_2: stopLoss2 || undefined,
-          stop_loss_3: stopLoss3 || undefined,
-          entry_price_low: entryLow || undefined,
-          entry_price_upper: entryUpper || undefined,
-          holding_period: holdingPeriod || undefined,
-          rationale: rationale || undefined,
-          underlying_study: underlyingStudyValue?.label || undefined,
-          research_remarks: remark || undefined,
+          entry_price: form.entry || undefined,
+          target_price: form.target || undefined,
+          stop_loss: form.stopLoss || undefined,
+          target_price_2: form.target2 || undefined,
+          target_price_3: form.target3 || undefined,
+          stop_loss_2: form.stopLoss2 || undefined,
+          stop_loss_3: form.stopLoss3 || undefined,
+          entry_price_low: form.entryLow || undefined,
+          entry_price_upper: form.entryUpper || undefined,
+          holding_period: form.holdingPeriod || undefined,
+          rationale: form.rationale || undefined,
+          underlying_study: form.underlyingStudy?.label || undefined,
+          research_remarks: form.remark || undefined,
         };
 
         res = await axios.post(
@@ -281,23 +298,23 @@ const NewRecommendation = () => {
 
 
 
-  const handleToggle = (label: string) => {
-    setSwitches((prev) => ({ ...prev, [label]: !prev[label as keyof typeof switches] }));
+  const handleToggle = (field: keyof RecommendationForm) => {
+    dispatch({ type: "SET_FIELD", field, value: !form[field] });
   };
 
-  const handlePriceChange = (setter: React.Dispatch<React.SetStateAction<string>>) => (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handlePriceChange = (field: keyof RecommendationForm) => (e: React.ChangeEvent<HTMLInputElement>) => {
     const val = e.target.value;
     if (val.includes("-")) return;
-    setter(val);
+    dispatch({ type: "SET_FIELD", field, value: val });
   };
 
   // hooks 
   const expiryDates = useExpiryDates(
-    callType as any,
-    exchangeType as any
+    form.callType as any,
+    form.exchangeType as any
   );
 
-  const autocomplete = useStockAutocomplete(exchangeType as "NSE" | "BSE");
+  const autocomplete = useStockAutocomplete(form.exchangeType as "NSE" | "BSE");
 
   const {
     inputValue,
@@ -355,7 +372,7 @@ const NewRecommendation = () => {
     _: unknown,
     newValue: StudyOption | null
   ) => {
-    setUnderlyingStudyValue(newValue);
+    dispatch({ type: "SET_FIELD", field: "underlyingStudy", value: newValue });
     if (!newValue) return;
 
     // update "recently selected" list (max 10, most recent first)
@@ -379,14 +396,15 @@ const NewRecommendation = () => {
 
   useEffect(() => {
     if (!expiryDates.length) {
-      setExpiry("");
+      dispatch({ type: "SET_FIELD", field: "expiry", value: "" });
       return;
     }
 
     const first = expiryDates[0].toISOString();
 
-    setExpiry(prev => (prev !== first ? first : prev));
-
+    if (form.expiry !== first) {
+      dispatch({ type: "SET_FIELD", field: "expiry", value: first });
+    }
   }, [expiryDates]);
 
   const [recommendations, setRecommendations] = useState<any[]>([]);
@@ -460,60 +478,38 @@ const NewRecommendation = () => {
   // 2. MODIFY FUNCTION (Loads data back into the form)
   const handleModify = useCallback((item) => {
     startTransition(() => {
-
-      setSwitches({
-        Range: Boolean(item.entry?.low || item.entry?.high),
-        "Secondary Target": Boolean(item.targets?.[1] || item.targets?.[2]),
-        "Stop Loss 2": Boolean(item.stop_losses?.[1] || item.stop_losses?.[2]),
-      });
-      setIsErrataMode(true);
-      setErrataSourceId(item.id);
-
-      setDirectValue(item.name || item.symbol || "");
-
-      if (item.underlying_study) {
-        setUnderlyingStudyValue({
+      const formUpdate: Partial<RecommendationForm> = {
+        rangeEnabled: Boolean(item.entry?.low || item.entry?.high),
+        secondaryTargetEnabled: Boolean(item.targets?.[1] || item.targets?.[2]),
+        stopLoss2Enabled: Boolean(item.stop_losses?.[1] || item.stop_losses?.[2]),
+        exchangeType: item.exchange,
+        exchange: item.instrument,
+        action: item.action,
+        callType: item.call_type,
+        tradeType: item.trade_type,
+        expiry: item.expiry_date || "",
+        entry: item.entry?.ideal?.toString() || "",
+        target: item.targets?.[0]?.toString() || "",
+        stopLoss: item.stop_losses?.[0]?.toString() || "",
+        holdingPeriod: item.holding_period?.toString() || "",
+        entryLow: item.entry?.low?.toString() || "",
+        entryUpper: item.entry?.high?.toString() || "",
+        target2: item.targets?.[1]?.toString() || "",
+        target3: item.targets?.[2]?.toString() || "",
+        stopLoss2: item.stop_losses?.[1]?.toString() || "",
+        stopLoss3: item.stop_losses?.[2]?.toString() || "",
+        rationale: item.rationale || "",
+        remark: item.research_remarks || item.remark || "",
+        underlyingStudy: item.underlying_study ? {
           label: item.underlying_study,
           value: item.underlying_study.toLowerCase().replace(/\s+/g, "_"),
-        });
-      } else {
-        setUnderlyingStudyValue(null);
-      }
+        } : null,
+      };
 
-      setExchangeType(item.exchange);
-      setExchange(item.instrument);
-      setAction(item.action);
-      setCallType(item.call_type);
-      setTradeType(item.trade_type);
-      setExpiry(item.expiry_date?.toString() || "");
-      setEntry(item.entry?.ideal?.toString() || "");
-      setTarget(item.targets?.[0]?.toString() || "");
-      console.log(item)
-      setStopLoss(item.stop_losses?.[0]?.toString() || "");
-      setRadioValue(item.holding_period?.toString() || "");
-      setEntryLow(item.entry?.low?.toString() || "");
-      setEntryUpper(item.entry?.high?.toString() || "");
-      setTarget2(item.targets?.[1]?.toString() || "");
-      setTarget3(item.targets?.[2]?.toString() || "");
-      setStopLoss2(item.stop_losses?.[1]?.toString() || "");
-      setStopLoss3(item.stop_losses?.[2]?.toString() || "");
-
-      // const getResearcherName = (item: Record<string, unknown>) => {
-      //   const getTextValue = (value: unknown) => (typeof value === "string" ? value : "");
-
-      //   return (
-      //     getTextValue(item.researcherName) ||
-      //     getTextValue(item.researcher) ||
-      //     getTextValue(item.researcher_name) ||
-      //     getTextValue(item.createdBy) ||
-      //     getTextValue(item.created_by) ||
-      //     getTextValue(item.username) ||
-      //     "-"
-      //   );
-      // };
-
-      setRationale(item.rationale || "");
-      setExpiry(item.expiry_date || "");
+      dispatch({ type: "SET_FORM", payload: formUpdate });
+      setIsErrataMode(true);
+      setErrataSourceId(item.id);
+      setDirectValue(item.name || item.symbol || "");
     });
 
     window.scrollTo({ top: 0 });
@@ -525,14 +521,14 @@ const NewRecommendation = () => {
     setWasValidated(true);
 
     // Check standard inputs via form
-    const form = event.currentTarget.closest('form');
-    const isFormValid = form.checkValidity();
+    const formEl = event.currentTarget.closest('form');
+    const isFormValid = formEl.checkValidity();
 
     // Check our Radio manually
-    const isRadioValid = radioValue !== "";
+    const isRadioValid = form.holdingPeriod !== "";
 
     if (isFormValid && isRadioValid) {
-      handlePublish();
+      handleSubmit();
       setWasValidated(false);
     }
   };
@@ -541,57 +537,38 @@ const NewRecommendation = () => {
   /// populate 
   useEffect(() => {
     (window as any).populateForm = () => {
-      // 🔹 Basic
-      setExchangeType("NSE");
-      setExchange("STOCK");
-      setAction("BUY");
-      setCallType("Cash");
-      setTradeType("Short Term");
-
-      // 🔹 Symbol & Display
-      setSymbol("SYM");
+      dispatch({
+        type: "SET_FORM",
+        payload: {
+          exchangeType: "NSE",
+          exchange: "STOCK",
+          action: "BUY",
+          callType: "Cash",
+          tradeType: "Short Term",
+          symbol: "SYM",
+          entry: "250",
+          entryLow: "240",
+          entryUpper: "260",
+          target: "270",
+          target2: "285",
+          target3: "300",
+          stopLoss: "230",
+          stopLoss2: "220",
+          stopLoss3: "210",
+          expiry: "2026-03-28",
+          holdingPeriod: "30 Days",
+          rationale: "Break Out Play",
+          underlyingStudy: {
+            label: "RSI + Volume Confirmation",
+            value: "rsi_volume",
+          },
+          rangeEnabled: true,
+          secondaryTargetEnabled: true,
+          stopLoss2Enabled: true,
+          remark: "Strong breakout with volume confirmation.",
+        }
+      });
       setDirectValue("A.F. Enterprises Ltd");
-
-      // 🔹 Entry & Range
-      setEntry("250");
-      setEntryLow("240");
-      setEntryUpper("260");
-
-      // 🔹 Targets
-      setTarget("270");
-      setTarget2("285");
-      setTarget3("300");
-
-      // 🔹 Stop Loss
-      setStopLoss("230");
-      setStopLoss2("220");
-      setStopLoss3("210");
-
-      // 🔹 Expiry
-      setExpiry("2026-03-28");
-
-      // 🔹 Holding Period (Radio)
-      setRadioValue("30 Days");
-
-      // 🔹 Rationale
-      setRationale("Break Out Play");
-
-      // 🔹 Underlying Study
-      setUnderlyingStudyValue({
-        label: "RSI + Volume Confirmation",
-        value: "rsi_volume",
-      });
-
-      // 🔹 Activate Toggles
-      setSwitches({
-        Range: true,
-        "Secondary Target": true,
-        "Stop Loss 2": true,
-      });
-
-      // 🔹 Remarks
-      setRemark("Strong breakout with volume confirmation.");
-
       console.log("Form Populated ✅");
     };
   }, []);
@@ -638,47 +615,47 @@ const NewRecommendation = () => {
       const payload = {
         status: "DRAFT",
 
-        exchange_type: exchangeType,
-        market_type: exchange,
-        symbol: symbol || finalDisplayName,
+        exchange_type: form.exchangeType,
+        market_type: form.exchange,
+        symbol: form.symbol || finalDisplayName,
         display_name: finalDisplayName,
 
-        action,
-        call_type: callType,
-        trade_type: tradeType,
-        expiry_date: expiry || null,
+        action: form.action,
+        call_type: form.callType,
+        trade_type: form.tradeType,
+        expiry_date: form.expiry || null,
 
         // 🔹 Entry
-        entry_price: entry || null,
-        entry_price_low: switches.Range ? entryLow || null : null,
-        entry_price_upper: switches.Range ? entryUpper || null : null,
+        entry_price: form.entry || null,
+        entry_price_low: form.rangeEnabled ? form.entryLow || null : null,
+        entry_price_upper: form.rangeEnabled ? form.entryUpper || null : null,
 
         // 🔹 Targets
-        target_price: target || null,
-        target_price_2: switches["Secondary Target"]
-          ? target2 || null
+        target_price: form.target || null,
+        target_price_2: form.secondaryTargetEnabled
+          ? form.target2 || null
           : null,
-        target_price_3: switches["Secondary Target"]
-          ? target3 || null
+        target_price_3: form.secondaryTargetEnabled
+          ? form.target3 || null
           : null,
 
         // 🔹 Stop Loss
-        stop_loss: stopLoss || null,
-        stop_loss_2: switches["Stop Loss 2"]
-          ? stopLoss2 || null
+        stop_loss: form.stopLoss || null,
+        stop_loss_2: form.stopLoss2Enabled
+          ? form.stopLoss2 || null
           : null,
-        stop_loss_3: switches["Stop Loss 2"]
-          ? stopLoss3 || null
+        stop_loss_3: form.stopLoss2Enabled
+          ? form.stopLoss3 || null
           : null,
 
-        holding_period: radioValue || null,
+        holding_period: form.holdingPeriod || null,
 
-        rationale,
-        underlying_study: underlyingStudyValue?.label || null,
+        rationale: form.rationale,
+        underlying_study: form.underlyingStudy?.label || null,
 
         is_algo: false,
         has_vested_interest: false,
-        research_remarks: remark || null,
+        research_remarks: form.remark || null,
       };
 
       console.log("TRACK PAYLOAD:", payload);
@@ -767,8 +744,8 @@ const NewRecommendation = () => {
           <ToggleButtonGroup
             size="small"
             exclusive
-            value={exchangeType}
-            onChange={(_, val) => val && setExchangeType(val)}
+            value={form.exchangeType}
+            onChange={(_, val) => val && dispatch({ type: "SET_FIELD", field: "exchangeType", value: val })}
             sx={{
               backgroundColor: "#eef2f7",
               "& .MuiToggleButtonGroup-grouped": {
@@ -785,14 +762,14 @@ const NewRecommendation = () => {
         {/* Action & Call Type Row */}
         <Box sx={{ display: "flex", flexDirection: "column", gap: 1, mb: 1 }}>
           <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 1 }}>
-            <ToggleButtonGroup size="small" exclusive value={action} onChange={(_, val) => val && setAction(val)}>
-              <ToggleButton value="BUY" sx={{ fontWeight: 700, px: 2, fontSize: "0.7rem", ...getActionStyles(action, "BUY") }}>BUY</ToggleButton>
-              <ToggleButton value="SELL" sx={{ fontWeight: 700, px: 2, fontSize: "0.7rem", ...getActionStyles(action, "SELL") }}>SELL</ToggleButton>
+            <ToggleButtonGroup size="small" exclusive value={form.action} onChange={(_, val) => val && dispatch({ type: "SET_FIELD", field: "action", value: val })}>
+              <ToggleButton value="BUY" sx={{ fontWeight: 700, px: 2, fontSize: "0.7rem", ...getActionStyles(form.action, "BUY") }}>BUY</ToggleButton>
+              <ToggleButton value="SELL" sx={{ fontWeight: 700, px: 2, fontSize: "0.7rem", ...getActionStyles(form.action, "SELL") }}>SELL</ToggleButton>
             </ToggleButtonGroup>
 
             <Box sx={{ overflowX: "auto", maxWidth: "100%" }}>
               <ToggleButtonGroup
-                size="small" exclusive value={callType} onChange={(_, val) => val && setCallType(val)}
+                size="small" exclusive value={form.callType} onChange={(_, val) => val && dispatch({ type: "SET_FIELD", field: "callType", value: val })}
                 sx={{
                   backgroundColor: "#eef2f7",
                   display: "flex",
@@ -819,12 +796,11 @@ const NewRecommendation = () => {
           <ToggleButtonGroup
             size="small"
             exclusive
-            value={exchange}
-            onChange={(_, val) => val && setExchange(val)}
+            value={form.exchange}
+            onChange={(_, val) => val && dispatch({ type: "SET_FIELD", field: "exchange", value: val })}
             sx={{
               backgroundColor: "#eef2f7",
               "& .MuiToggleButtonGroup-grouped": {
-
                 border: "none",
                 px: 1.5,
                 fontSize: "0.65rem",
@@ -849,8 +825,8 @@ const NewRecommendation = () => {
             <ToggleButtonGroup
               size="small"
               exclusive
-              value={tradeType}
-              onChange={(_, val) => val && setTradeType(val)}
+              value={form.tradeType}
+              onChange={(_, val) => val && dispatch({ type: "SET_FIELD", field: "tradeType", value: val })}
               sx={{
                 backgroundColor: "#eef2f7",
                 whiteSpace: "nowrap",
@@ -880,7 +856,7 @@ const NewRecommendation = () => {
               <ToggleButton value="Short Term">Short Term</ToggleButton>
               <ToggleButton
                 value="Long Term"
-                disabled={["Futures", "Option Call", "Option Put"].includes(callType)}
+                disabled={["Futures", "Option Call", "Option Put"].includes(form.callType)}
               >
                 Long Term
               </ToggleButton>
@@ -942,9 +918,9 @@ const NewRecommendation = () => {
           <Box sx={{ display: "flex", gap: 1, flexGrow: { xs: 1, sm: 0 } }}>
             <Select
               size="small"
-              value={expiry}
-              onChange={(e) => setExpiry(e.target.value)}
-              disabled={callType === "Cash"}
+              value={form.expiry}
+              onChange={(e) => dispatch({ type: "SET_FIELD", field: "expiry", value: e.target.value })}
+              disabled={form.callType === "Cash"}
               displayEmpty
               sx={{
                 flexGrow: 1,
@@ -953,7 +929,7 @@ const NewRecommendation = () => {
                 fontSize: "0.8rem",
               }}
             >
-              {callType === "Cash" && (
+              {form.callType === "Cash" && (
                 <MenuItem value="">
                   No Expiry
                 </MenuItem>
@@ -971,9 +947,9 @@ const NewRecommendation = () => {
 
         {/* Prices Row */}
         <Box sx={{ display: "flex", flexDirection: { xs: "column", sm: "row" }, gap: 1, mb: 1 }}>
-          <TextField required label="Entry" size="small" type="number" value={entry} onChange={handlePriceChange(setEntry)} sx={{ ...transparentInputSx, flex: 1 }} />
-          <TextField required label="Target" size="small" type="number" value={target} onChange={handlePriceChange(setTarget)} sx={{ ...transparentInputSx, flex: 1 }} />
-          <TextField required label="Stop Loss" size="small" type="number" value={stopLoss} onChange={handlePriceChange(setStopLoss)} sx={{ ...transparentInputSx, flex: 1 }} />
+          <TextField required label="Entry" size="small" type="number" value={form.entry} onChange={handlePriceChange("entry")} sx={{ ...transparentInputSx, flex: 1 }} />
+          <TextField required label="Target" size="small" type="number" value={form.target} onChange={handlePriceChange("target")} sx={{ ...transparentInputSx, flex: 1 }} />
+          <TextField required label="Stop Loss" size="small" type="number" value={form.stopLoss} onChange={handlePriceChange("stopLoss")} sx={{ ...transparentInputSx, flex: 1 }} />
         </Box>
 
         {/* Switched Options Row */}
@@ -986,55 +962,16 @@ const NewRecommendation = () => {
             gap: { xs: 2, md: 1.5 },
           }}
         >
-          {["Range", "Secondary Target", "Stop Loss 2"].map((label) => {
-            const isActive = switches[label as keyof typeof switches];
-
-            let p1 = "Disabled",
-              p2 = "Disabled";
-
-            if (label === "Range") {
-              p1 = "Lower Entry";
-              p2 = "Upper Entry";
-            }
-            if (label === "Secondary Target") {
-              p1 = "T2";
-              p2 = "T3";
-            }
-            if (label === "Stop Loss 2") {
-              p1 = "SL2";
-              p2 = "SL3";
-            }
-
-            // 🔥 Map correct state per section
-            let value1 = "";
-            let value2 = "";
-            let setter1 = (v: string) => { };
-            let setter2 = (v: string) => { };
-
-            if (label === "Range") {
-              value1 = entryLow;
-              value2 = entryUpper;
-              setter1 = setEntryLow;
-              setter2 = setEntryUpper;
-            }
-
-            if (label === "Secondary Target") {
-              value1 = target2;
-              value2 = target3;
-              setter1 = setTarget2;
-              setter2 = setTarget3;
-            }
-
-            if (label === "Stop Loss 2") {
-              value1 = stopLoss2;
-              value2 = stopLoss3;
-              setter1 = setStopLoss2;
-              setter2 = setStopLoss3;
-            }
+          {[
+            { label: "Range", field: "rangeEnabled" as const, p1: "Lower Entry", p2: "Upper Entry", v1: "entryLow" as const, v2: "entryUpper" as const },
+            { label: "Secondary Target", field: "secondaryTargetEnabled" as const, p1: "T2", p2: "T3", v1: "target2" as const, v2: "target3" as const },
+            { label: "Stop Loss 2", field: "stopLoss2Enabled" as const, p1: "SL2", p2: "SL3", v1: "stopLoss2" as const, v2: "stopLoss3" as const },
+          ].map((cfg) => {
+            const isActive = form[cfg.field];
 
             return (
               <Box
-                key={label}
+                key={cfg.label}
                 sx={{
                   textAlign: "center",
                   flex: 1,
@@ -1054,12 +991,12 @@ const NewRecommendation = () => {
                   }}
                 >
                   <Typography sx={{ fontSize: "0.75rem", fontWeight: 700 }}>
-                    {label}
+                    {cfg.label}
                   </Typography>
                   <Switch
                     size="small"
                     checked={isActive}
-                    onChange={() => handleToggle(label)}
+                    onChange={() => handleToggle(cfg.field)}
                   />
                 </Box>
 
@@ -1068,9 +1005,9 @@ const NewRecommendation = () => {
                   {isActive ? (
                     <>
                       <TextField
-                        value={value1}
-                        onChange={(e) => setter1(e.target.value)}
-                        placeholder={p1}
+                        value={form[cfg.v1]}
+                        onChange={handlePriceChange(cfg.v1)}
+                        placeholder={cfg.p1}
                         size="small"
                         variant="outlined"
                         sx={{
@@ -1083,9 +1020,9 @@ const NewRecommendation = () => {
                         }}
                       />
                       <TextField
-                        value={value2}
-                        onChange={(e) => setter2(e.target.value)}
-                        placeholder={p2}
+                        value={form[cfg.v2]}
+                        onChange={handlePriceChange(cfg.v2)}
+                        placeholder={cfg.p2}
                         size="small"
                         variant="outlined"
                         sx={{
@@ -1161,29 +1098,29 @@ const NewRecommendation = () => {
           <Box sx={{ width: "100%" }}>
             <FormControl
               fullWidth
-              error={wasValidated && !radioValue && tradeType !== "Intraday"}
+              error={wasValidated && !form.holdingPeriod && form.tradeType !== "Intraday"}
               sx={{ mt: 1 }}
             >
               <Typography sx={{ fontSize: '0.7rem', fontWeight: 700, mb: 0.5 }}>Holding Period</Typography>
 
               {/* Intraday Logic */}
-              {tradeType === "Intraday" && (
+              {form.tradeType === "Intraday" && (
                 <RadioGroup row value="0">
                   <FormControlLabel value="0" control={<Radio size="small" color="primary" />} label={<Typography sx={{ fontSize: '0.65rem' }}>0</Typography>} checked={true} />
                 </RadioGroup>
               )}
 
               {/* BTST/STBT Logic */}
-              {(tradeType === "BTST" || tradeType === "STBT") && (
-                <RadioGroup row value={radioValue} onChange={(e) => setRadioValue(e.target.value)}>
+              {(form.tradeType === "BTST" || form.tradeType === "STBT") && (
+                <RadioGroup row value={form.holdingPeriod} onChange={(e) => dispatch({ type: "SET_FIELD", field: "holdingPeriod", value: e.target.value })}>
                   <FormControlLabel value="0" control={<Radio size="small" color="primary" />} label={<Typography sx={{ fontSize: '0.65rem' }}>0</Typography>} />
                   <FormControlLabel value="1" control={<Radio size="small" color="primary" />} label={<Typography sx={{ fontSize: '0.65rem' }}>1</Typography>} />
                 </RadioGroup>
               )}
 
               {/* Short Term Logic */}
-              {tradeType === "Short Term" && (
-                <RadioGroup row value={radioValue} onChange={(e) => setRadioValue(e.target.value)}>
+              {form.tradeType === "Short Term" && (
+                <RadioGroup row value={form.holdingPeriod} onChange={(e) => dispatch({ type: "SET_FIELD", field: "holdingPeriod", value: e.target.value })}>
                   <FormControlLabel value="7 Days" control={<Radio size="small" />} label={<Typography sx={{ fontSize: '0.65rem' }}>Upto 7 Days</Typography>} />
                   <FormControlLabel value="30 Days" control={<Radio size="small" />} label={<Typography sx={{ fontSize: '0.65rem' }}>Upto 30 Days</Typography>} />
                   <FormControlLabel value="90 Days" control={<Radio size="small" />} label={<Typography sx={{ fontSize: '0.65rem' }}>Upto 90 Days</Typography>} />
@@ -1191,15 +1128,15 @@ const NewRecommendation = () => {
               )}
 
               {/* Long Term Logic */}
-              {tradeType === "Long Term" && (
-                <RadioGroup row value={radioValue} onChange={(e) => setRadioValue(e.target.value)}>
+              {form.tradeType === "Long Term" && (
+                <RadioGroup row value={form.holdingPeriod} onChange={(e) => dispatch({ type: "SET_FIELD", field: "holdingPeriod", value: e.target.value })}>
                   <FormControlLabel value="6 Months" control={<Radio size="small" />} label={<Typography sx={{ fontSize: '0.65rem' }}>Upto 6 Months</Typography>} />
                   <FormControlLabel value="1 Year" control={<Radio size="small" />} label={<Typography sx={{ fontSize: '0.65rem' }}>Upto 1 Year</Typography>} />
                   <FormControlLabel value="5 Years" control={<Radio size="small" />} label={<Typography sx={{ fontSize: '0.65rem' }}>Upto 5 Years</Typography>} />
                 </RadioGroup>
               )}
               {/* This shows the red text below the radios if empty */}
-              {wasValidated && !radioValue && tradeType !== "Intraday" && (
+              {wasValidated && !form.holdingPeriod && form.tradeType !== "Intraday" && (
                 <FormHelperText sx={{ fontSize: '0.6rem', mt: 0 }}>Please select a holding period</FormHelperText>
               )}
             </FormControl>
@@ -1212,8 +1149,8 @@ const NewRecommendation = () => {
               <ToggleButtonGroup
                 size="small"
                 exclusive
-                value={rationale}
-                onChange={(_, val) => val && setRationale(val)}
+                value={form.rationale}
+                onChange={(_, val) => val && dispatch({ type: "SET_FIELD", field: "rationale", value: val })}
                 sx={{
                   backgroundColor: "#eef2f7",
                   whiteSpace: "nowrap",
@@ -1254,12 +1191,12 @@ const NewRecommendation = () => {
             fullWidth
             options={studyOptions}
             value={
-              underlyingStudyValue
+              form.underlyingStudy
                 ? {
-                  ...underlyingStudyValue,
+                  ...form.underlyingStudy,
                   group:
                     UNDERLYING_STUDIES.find((g) =>
-                      g.options.some((o) => o.value === underlyingStudyValue.value)
+                      g.options.some((o) => o.value === form.underlyingStudy?.value)
                     )?.group ?? "Fundamental & General Analysis",
                 }
                 : null
@@ -1305,8 +1242,8 @@ const NewRecommendation = () => {
             multiline
             rows={2}
             placeholder="Research Analyst's Remarks"
-            value={remark}
-            onChange={(e) => setRemark(e.target.value)}
+            value={form.remark}
+            onChange={(e) => dispatch({ type: "SET_FIELD", field: "remark", value: e.target.value })}
             sx={{ flexGrow: 1 }}
           />
 
