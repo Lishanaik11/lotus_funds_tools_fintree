@@ -5,7 +5,7 @@ import DashboardIcon from "@mui/icons-material/Dashboard";
 import CheckBoxIcon from "@mui/icons-material/CheckBox";
 import FolderIcon from "@mui/icons-material/Folder";
 import Header from "./Header";
-import Sidebar from "./Sidebar";
+import Sidebar from "../page_Mainapp/Sidebar";
 import type { SidebarItem } from "../../types/sidebar";
 
 const appSidebarItems: SidebarItem[] = [

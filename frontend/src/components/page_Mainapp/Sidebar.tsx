@@ -17,7 +17,7 @@ import {
 import CloseIcon from "@mui/icons-material/Close";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import type { SidebarItem } from "../../types/sidebar";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 
 
 export interface SidebarProps {
@@ -49,15 +49,7 @@ const Sidebar = ({ open = false, onClose, items }: SidebarProps) => {
     },
   });
 
-  //username 
-  const [username, setUsername] = useState("");
-
-  useEffect(() => {
-    const storedUsername = localStorage.getItem("username");
-    if (storedUsername) {
-      setUsername(storedUsername);
-    }
-  }, []);
+  const [username] = useState(() => localStorage.getItem("username") ?? "");
 
 
   const navigate = useNavigate();

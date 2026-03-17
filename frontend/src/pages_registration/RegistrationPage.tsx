@@ -118,6 +118,11 @@ const handleSave = async () => {
 
         const token = localStorage.getItem("token");
         console.log("TOKEN:", token);
+
+if (!token) {
+  alert("User not logged in. Please login first.");
+  return;
+}
         const form = new FormData();
 
         // text fields
@@ -133,15 +138,21 @@ const handleSave = async () => {
         });
 
         const response = await axios.post(
-  "http://localhost:3000/api/registration/register-ra",
-  formData,
+  `${API_URL}/api/registration/register-ra`,
+  form,
   {
     headers: {
-      "Content-Type": "multipart/form-data",
-    },
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "multipart/form-data"
+    }
   }
 );
 
+if (response.data.success) {
+  alert("✅ Registration submitted successfully!");
+}
+
+console.log("Registration success:", response.data);
         console.log("Registration success:", response.data);
 
       } catch (error) {
@@ -439,8 +450,26 @@ const handleDocUpload = (
             <Typography variant="body2" sx={{ textAlign: 'center', mt: 4, fontWeight: 600, color: '#333' }}>
                 Research Analyst's Disclaimer is not included
             </Typography>
+
+            {/* Additional Comments */}
+<Box sx={{ mt: 4 }}>
+  <Typography sx={styles.subTitle}>Add your custom Disclosure</Typography>
+  <Divider sx={{ mb: 2 }} />
+
+  <TextField
+    fullWidth
+    multiline
+    rows={4}
+    name="additionalComments"
+    label="Disclaimer Text"
+    placeholder="Type your official disclaimer here.."
+    sx={styles.input}
+    onChange={handleChange}
+  />
+</Box>
           </Box>
         )}
+        
 
         <Box sx={{ display: 'flex', justifyContent: currentStep > 1 ? 'space-between' : 'flex-end', alignItems: 'flex-start', mt: 8 }}>
           {currentStep > 1 && (
