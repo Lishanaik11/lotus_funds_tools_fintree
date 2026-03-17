@@ -4,40 +4,41 @@ import axios from "axios";
 
 interface Props {
     children: JSX.Element;
+    allowedRoles?: string[];
 }
 
-const ProtectedRoute = ({ children }: Props) => {
+const ProtectedRoute = ({ children, allowedRoles }: Props) => {
     const [isValid, setIsValid] = useState<boolean | null>(null);
 
     useEffect(() => {
         const token = localStorage.getItem("token");
+        const role = localStorage.getItem("role");
 
         if (!token) {
             setIsValid(false);
             return;
         }
 
-        axios.get(`${import.meta.env.VITE_API_URL}/api/auth/me`, {
-            headers: {
-                Authorization: `Bearer ${token}`,
-            },
-        })
+        axios
+            .get(`${import.meta.env.VITE_API_URL}/api/auth/me`, {
+                headers: { Authorization: `Bearer ${token}` },
+            })
             .then(() => {
-                setIsValid(true);
+                if (allowedRoles && !allowedRoles.includes(role || "")) {
+                    setIsValid(false);
+                } else {
+                    setIsValid(true);
+                }
             })
             .catch(() => {
                 localStorage.clear();
                 setIsValid(false);
             });
-
     }, []);
 
-    // While checking token
-    if (isValid === null) {
-        return <div>Loading...</div>;
-    }
+    if (isValid === null) return <div>Loading...</div>;
 
-    // If invalid
+    // 🔑 always redirect to /login if not authenticated
     if (!isValid) {
         return <Navigate to="/login" replace />;
     }

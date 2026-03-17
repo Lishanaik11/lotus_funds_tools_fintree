@@ -4,48 +4,37 @@ import {
   Typography,
   TextField,
   Button,
-  MenuItem,
-  FormControl,
-  InputLabel,
   IconButton,
   InputAdornment,
-  Select,
-  CircularProgress,
-  Link
+  CircularProgress
 } from "@mui/material";
-import type { SelectChangeEvent } from "@mui/material";
 
 import Visibility from "@mui/icons-material/Visibility";
 import VisibilityOff from "@mui/icons-material/VisibilityOff";
-import RestartAltIcon from "@mui/icons-material/RestartAlt";
 
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 
-const LoginForm: React.FC = () => {
-
+const LoginFormAdmin: React.FC = () => {
   const navigate = useNavigate();
-
-
-
-
-  const [showPassword, setShowPassword] = useState(false);
-
-  const [message, setMessage] = useState("");
-  const [loading, setLoading] = useState(false);
 
   const [formData, setFormData] = useState({
     username: "",
     password: "",
   });
+
+  const [showPassword, setShowPassword] = useState(false);
+  const [message, setMessage] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  const API_URL = import.meta.env.VITE_API_URL;
+
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
   ) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
-
-
 
   const handleClickShowPassword = () =>
     setShowPassword((show) => !show);
@@ -54,8 +43,6 @@ const LoginForm: React.FC = () => {
     e.preventDefault();
     setMessage("");
     setLoading(true);
-
-    const API_URL = import.meta.env.VITE_API_URL;
 
     try {
       const res = await axios.post(
@@ -66,20 +53,19 @@ const LoginForm: React.FC = () => {
         }
       );
 
-      const { token, role } = res.data;
+      const { token, role, username } = res.data;
+
+
+      console.log("LOGIN RESPONSE:", res.data);
 
       localStorage.setItem("token", token);
-      localStorage.setItem("username", res.data.username);
-
+      localStorage.setItem("username", username);
       localStorage.setItem("role", role);
-      console.log("LOGIN:", res.data);
 
-      if (role === "RA") {
-        navigate("/");
-      } else {
-        setMessage("Use company login for this account");
-        localStorage.clear();
-      }
+      // Redirect based on role
+      if (role === "ADMIN") navigate("/admin");
+      if (role === "EMPLOYEE") navigate("/automation");
+
 
     } catch (err: any) {
       setMessage(
@@ -131,7 +117,7 @@ const LoginForm: React.FC = () => {
             fontWeight: 700,
           }}
         >
-          Login
+          Company Login
         </Typography>
 
         <TextField
@@ -160,18 +146,12 @@ const LoginForm: React.FC = () => {
                   onClick={handleClickShowPassword}
                   edge="end"
                 >
-                  {showPassword ? (
-                    <VisibilityOff />
-                  ) : (
-                    <Visibility />
-                  )}
+                  {showPassword ? <VisibilityOff /> : <Visibility />}
                 </IconButton>
               </InputAdornment>
             ),
           }}
         />
-
-
 
         <Button
           type="submit"
@@ -193,18 +173,6 @@ const LoginForm: React.FC = () => {
           )}
         </Button>
 
-        <Link sx={{ py: 1.5,
-        justifyContent: "center",
-        display: "flex",
-        fontWeight: 600,
-        backgroundColor: "#4F6CF8",
-        color: "white",
-        borderRadius: 2,
-        mt: 1 }}
-        href="/registration" > 
-        Register Now
-        </Link>
-
         {message && (
           <Typography
             sx={{
@@ -224,4 +192,4 @@ const LoginForm: React.FC = () => {
   );
 };
 
-export default LoginForm;
+export default LoginFormAdmin;

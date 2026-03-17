@@ -11,7 +11,7 @@ import {
   IconButton,
   useMediaQuery,
   useTheme,
-  
+
 } from "@mui/material";
 // import MoreHorizIcon from "@mui/icons-material/MoreHoriz";
 import CloseIcon from "@mui/icons-material/Close";
@@ -55,8 +55,15 @@ const Sidebar = ({ open = false, onClose, items }: SidebarProps) => {
   const navigate = useNavigate();
 
   const handleLogout = () => {
-    localStorage.clear(); // simpler
-    navigate("/login", { replace: true });
+    const role = localStorage.getItem("role"); // read role before clearing
+
+    localStorage.clear();
+
+    if (role === "ADMIN" || role === "EMPLOYEE") {
+      navigate("/login-admin", { replace: true });
+    } else {
+      navigate("/login", { replace: true });
+    }
   };
 
 

@@ -8,48 +8,76 @@ export const login = async (req: Request, res: Response) => {
     try {
         const { username, password } = req.body;
 
-        // 1️⃣ Get user from DB
-        const result = await pool.query(
+        let user;
+        let source = "users";
+
+        // 1️⃣ Check company_users first (ADMIN / EMPLOYEE)
+        let result = await pool.query(
             `SELECT id, username, password_hash, role, status
-       FROM users
-       WHERE username = $1`,
+             FROM company_users
+             WHERE username = $1`,
             [username]
         );
 
-        if (result.rows.length === 0) {
-            return res.status(400).json({ message: "Invalid username or password" });
+        if (result.rows.length > 0) {
+            user = result.rows[0];
+            source = "company_users";
+        } else {
+            // 2️⃣ Check RA users table
+            result = await pool.query(
+                `SELECT id, username, password_hash, role, status
+                 FROM users
+                 WHERE username = $1`,
+                [username]
+            );
+
+            if (result.rows.length === 0) {
+                return res.status(400).json({ message: "Invalid username or password" });
+            }
+
+            user = result.rows[0];
         }
 
-        const user = result.rows[0];
-
-        // 2️⃣ Check if user is active
+        // 3️⃣ Check if user active
         if (user.status?.toLowerCase() !== "active") {
             return res.status(403).json({ message: "Account is inactive" });
         }
 
-
-        // 3️⃣ Compare password
+        // 4️⃣ Compare password
         const isMatch = await bcrypt.compare(password, user.password_hash);
 
         if (!isMatch) {
             return res.status(400).json({ message: "Invalid username or password" });
         }
 
-        // 4️⃣ Generate JWT
+        // Normalize role
+        const normalizedRole =
+            user.role === "RESEARCH_ANALYST" ? "RA" : user.role;
+
+        // Generate JWT
         const token = jwt.sign(
             {
                 id: user.id,
-                role: user.role,
+                role: normalizedRole,
+                source
             },
             process.env.JWT_SECRET as string,
             { expiresIn: "1d" }
         );
 
+        // Response
+        res.json({
+            message: "Login successful",
+            token,
+            role: normalizedRole,
+            username: user.username
+        });
+
         res.json({
             message: "Login successful",
             token,
             role: user.role,
-            username: user.username,
+            username: user.username
         });
 
     } catch (error) {
@@ -57,7 +85,6 @@ export const login = async (req: Request, res: Response) => {
         res.status(500).json({ message: "Server error" });
     }
 };
-
 
 export const getMe = async (req: AuthRequest, res: Response) => {
     if (!req.user) {

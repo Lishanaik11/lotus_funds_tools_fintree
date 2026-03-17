@@ -33,12 +33,15 @@ import ProtectedRoute from "../components/ProtectedRoute";
 
 // Tool import
 import { ExceltoJSONTool } from "../tools/ExceltoJSONtool";
+import LoginFormAdmin from "../common/LoginFormAdmin";
 
 const AppRoutes = () => {
   return (
     <Routes>
       {/* --- Auth & Public Routes --- */}
       <Route path="/login" element={<LoginForm />} />
+      <Route path="/login-admin" element={<LoginFormAdmin />} />
+
       <Route path="/signup" element={<Signup />} />
 
       {/* --- Registration Workflow --- */}
@@ -47,40 +50,95 @@ const AppRoutes = () => {
         <Route path="broker" element={<BrokerRegistration />} />
       </Route>
 
-      {/* --- 1. Main Dashboard Layout (Protected) --- */}
-      <Route element={<ProtectedRoute><AppLayout /></ProtectedRoute>}>
+      {/* --- 1. Main Dashboard Layout (EMPLOYEE + ADMIN) --- */}
+      <Route
+        element={
+          <ProtectedRoute allowedRoles={["EMPLOYEE", "ADMIN", "RA"]}>
+            <AppLayout />
+          </ProtectedRoute>
+        }
+      >
         <Route path="/" element={<Dashboard />} />
         <Route path="/recommendations" element={<Recommendations />} />
         <Route path="/performance" element={<Performance />} />
       </Route>
 
-      {/* --- 2. Morning Report Workflow (Full Screen) --- */}
-      <Route path="/morning-report-builder" element={<MorningReportBuilder />} />
-      <Route path="/morning-report-view" element={<MorningReport />} />
-      <Route path="/logo-theme" element={<Logotheme />} />
-      <Route path="/email-generator" element={<Generator />} />
+      {/* --- 2. Morning Report Workflow (EMPLOYEE + ADMIN) --- */}
+      <Route
+        path="/morning-report-builder"
+        element={
+          <ProtectedRoute allowedRoles={["EMPLOYEE", "ADMIN"]}>
+            <MorningReportBuilder />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/morning-report-view"
+        element={
+          <ProtectedRoute allowedRoles={["EMPLOYEE", "ADMIN"]}>
+            <MorningReport />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/logo-theme"
+        element={
+          <ProtectedRoute allowedRoles={["EMPLOYEE", "ADMIN"]}>
+            <Logotheme />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/email-generator"
+        element={
+          <ProtectedRoute allowedRoles={["EMPLOYEE", "ADMIN"]}>
+            <Generator />
+          </ProtectedRoute>
+        }
+      />
 
-      {/* --- 3. Automation Layout --- */}
-      <Route path="/automation" element={<AutomationLayout />}>
+      {/* --- 3. Automation Layout (EMPLOYEE + ADMIN) --- */}
+      <Route
+        path="/automation"
+        element={
+          <ProtectedRoute allowedRoles={["EMPLOYEE", "ADMIN"]}>
+            <AutomationLayout />
+          </ProtectedRoute>
+        }
+      >
         <Route index element={<Navigate to="Afternoon" replace />} />
         <Route path="Afternoon" element={<Afternoon />} />
         <Route path="Evening" element={<Evening />} />
         <Route path="Morning" element={<Morning />} />
         <Route path="Special" element={<Special />} />
         <Route path="Weekly" element={<Weekly />} />
-        <Route path="ExcelTool" element={<ExceltoJSONTool/>}/>
+        <Route path="ExcelTool" element={<ExceltoJSONTool />} />
       </Route>
 
-      {/* --- 4. Admin Layout --- */}
-      <Route path="/admin" element={<AdminLayout />}>
+      {/* --- 4. Admin Layout (ADMIN ONLY) --- */}
+      <Route
+        path="/admin"
+        element={
+          <ProtectedRoute allowedRoles={["ADMIN"]}>
+            <AdminLayout />
+          </ProtectedRoute>
+        }
+      >
         <Route index element={<AdminDashboard />} />
         <Route path="dashboard" element={<AdminDashboard />} />
         <Route path="recommendations" element={<AdminRecommendations />} />
         <Route path="approval" element={<AdminApproval />} />
       </Route>
 
-      {/* Client layout */}
-      <Route path="/client/*" element={<ClientLayout />}>
+      {/* --- 5. Client Layout (CLIENT ONLY) --- */}
+      <Route
+        path="/client/*"
+        element={
+          <ProtectedRoute allowedRoles={["CLIENT"]}>
+            <ClientLayout />
+          </ProtectedRoute>
+        }
+      >
         <Route index element={<ClientDashboard />} />
         <Route path="dashboard" element={<ClientDashboard />} />
         <Route path="recommendations" element={<ClientRecommendations />} />
@@ -88,14 +146,10 @@ const AppRoutes = () => {
         <Route path="*" element={<ClientNotFound />} />
       </Route>
 
-
-
-      {/* Pages without sidebar (optional) */}
-      {/* <Route path="*" element={<NotFound />} /> */}
       {/* Catch-all for 404s */}
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );
-};
+}
 
 export default AppRoutes;
