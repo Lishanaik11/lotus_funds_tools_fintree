@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import {
   Box,
   Grid,
@@ -191,8 +191,19 @@ const Performance: React.FC = () => {
     );
   }
 
+  const isComingSoon = true;
+
   return (
-    <Box sx={{ p: 3, backgroundColor: "#fff" }}>
+    <Box sx={{ position: "relative" }}>
+
+    <Box
+    sx={{
+      p: 3,
+      backgroundColor: "#fff",
+      filter: isComingSoon ? "blur(6px)" : "none",
+      pointerEvents: isComingSoon ? "none" : "auto",
+    }}
+  >
       <Typography fontSize="1.625rem" fontWeight={700} mb={3}>
         Performance
       </Typography>
@@ -272,6 +283,29 @@ const Performance: React.FC = () => {
       </Paper>
 
       <RecommendationHistory />
+    </Box>
+    {/* 🔹 OVERLAY (NOT blurred) */}
+  {isComingSoon && (
+    <Typography
+      sx={{
+        position: "absolute",
+        top: "50%",
+        left: "50%",
+        transform: "translate(-50%, -50%)",
+        fontSize: "1.8rem",
+        fontWeight: 700,
+        background: "#4F6EF7",
+        color: "#fff",
+        px: 3,
+        py: 1,
+        borderRadius: "999px",
+        zIndex: 10,
+      }}
+    >
+      Coming Soon
+    </Typography>
+  )}
+
     </Box>
   );
 };
