@@ -17,6 +17,7 @@ import {
   Autocomplete,
   Divider,
 } from "@mui/material";
+import axios from "axios";
 import type { SelectChangeEvent } from "@mui/material";
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import CloudUploadIcon from '@mui/icons-material/CloudUpload';
@@ -24,6 +25,7 @@ import CloudUploadIcon from '@mui/icons-material/CloudUpload';
 const RegistrationPage: React.FC = () => {
   const [currentStep, setCurrentStep] = useState(1);
   const [errors, setErrors] = useState<{ [key: string]: boolean }>({});
+  const API_URL = import.meta.env.VITE_API_URL;
 
   const [formData, setFormData] = useState({
     salutation: "", firstName: "", middleName: "", surname: "",
@@ -54,6 +56,16 @@ const RegistrationPage: React.FC = () => {
     panCard: "No file chosen",
     addressProofDoc: "No file chosen"
   });
+
+  const [files, setFiles] = useState<any>({
+  profileImage: null,
+  sebiCert: null,
+  sebiReceipt: null,
+  nismCert: null,
+  cancelledCheque: null,
+  panCard: null,
+  addressProofDoc: null
+});
 
   // Data Lists
   const bankOptions = ["AU Small Finance Bank", "Axis Bank", "Bank of Baroda", "Bank of India", "Bank of Maharashtra", "Canara Bank", "Central Bank of India", "Citibank", "DBS Bank India", "Equitas Small Finance Bank", "Federal Bank", "HDFC Bank", "HSBC", "ICICI Bank", "IDFC First Bank", "Indian Bank", "Indian Overseas Bank", "IndusInd Bank", "Kotak Mahindra Bank", "Punjab & Sind Bank", "Punjab National Bank (PNB)", "RBL Bank", "South Indian Bank", "Standard Chartered", "State Bank of India (SBI)", "UCO Bank", "Ujjivan Small Finance Bank", "Union Bank of India", "Yes Bank"];
@@ -95,31 +107,93 @@ const RegistrationPage: React.FC = () => {
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSave = () => {
-    if (validateStep()) {
-      if (currentStep < 4) {
-        setCurrentStep(currentStep + 1);
-        window.scrollTo(0, 0);
-      } else {
-        console.log("Final Submission", formData);
+const handleSave = async () => {
+  if (validateStep()) {
+    if (currentStep < 4) {
+      setCurrentStep(currentStep + 1);
+      window.scrollTo(0, 0);
+    } else {
+
+      try {
+
+        const token = localStorage.getItem("token");
+
+if (!token) {
+  alert("User not logged in. Please login first.");
+  return;
+}
+        const form = new FormData();
+
+        // text fields
+        Object.entries(formData).forEach(([key, value]) => {
+          form.append(key, String(value));
+        });
+
+        // files
+        Object.entries(files).forEach(([key, file]) => {
+          if (file) {
+            form.append(key, file as Blob);
+          }
+        });
+
+        const response = await axios.post(
+  `${API_URL}/api/registration/register-ra`,
+  form,
+  {
+    headers: {
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "multipart/form-data"
+    }
+  }
+);
+
+if (response.data.success) {
+  alert("✅ Registration submitted successfully!");
+}
+
+console.log("Registration success:", response.data);
+        console.log("Registration success:", response.data);
+
+      } catch (error) {
+        console.error("Registration error:", error);
       }
-    }
-  };
 
-  const handleProfileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      setProfileFileName(file.name);
-      const reader = new FileReader();
-      reader.onload = (event) => setProfileImage(event.target?.result as string);
-      reader.readAsDataURL(file);
     }
-  };
+  }
+};
 
-  const handleDocUpload = (e: React.ChangeEvent<HTMLInputElement>, key: keyof typeof fileLabels) => {
-    const file = e.target.files?.[0];
-    if (file) setFileLabels(prev => ({ ...prev, [key]: file.name }));
-  };
+const handleProfileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const file = e.target.files?.[0];
+
+  if (file) {
+    setProfileFileName(file.name);
+
+    setFiles((prev:any) => ({
+      ...prev,
+      profileImage: file
+    }));
+
+    const reader = new FileReader();
+    reader.onload = (event) => setProfileImage(event.target?.result as string);
+    reader.readAsDataURL(file);
+  }
+};
+
+const handleDocUpload = (
+  e: React.ChangeEvent<HTMLInputElement>,
+  key: keyof typeof fileLabels
+) => {
+  const file = e.target.files?.[0];
+
+  if (file) {
+    setFileLabels(prev => ({ ...prev, [key]: file.name }));
+
+    setFiles((prev:any) => ({
+      ...prev,
+      [key]: file
+    }));
+  }
+};
 
   const getDynamicUploadStyle = (fileName: string) => {
     const isUploaded = fileName !== "No file chosen";
@@ -375,8 +449,26 @@ const RegistrationPage: React.FC = () => {
             <Typography variant="body2" sx={{ textAlign: 'center', mt: 4, fontWeight: 600, color: '#333' }}>
                 Research Analyst's Disclaimer is not included
             </Typography>
+
+            {/* Additional Comments */}
+<Box sx={{ mt: 4 }}>
+  <Typography sx={styles.subTitle}>Add your custom Disclosure</Typography>
+  <Divider sx={{ mb: 2 }} />
+
+  <TextField
+    fullWidth
+    multiline
+    rows={4}
+    name="additionalComments"
+    label="Disclaimer Text"
+    placeholder="Type your official disclaimer here.."
+    sx={styles.input}
+    onChange={handleChange}
+  />
+</Box>
           </Box>
         )}
+        
 
         <Box sx={{ display: 'flex', justifyContent: currentStep > 1 ? 'space-between' : 'flex-end', alignItems: 'flex-start', mt: 8 }}>
           {currentStep > 1 && (

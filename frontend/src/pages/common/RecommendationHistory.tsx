@@ -32,8 +32,8 @@ interface HistoryRecord {
   instrument: string;
   symbol: string;
   expiry: string | null;
-  entry: number;
-  exit: number;
+  entry: number | string;
+  exit: number | string;
   status: string;
   profitLoss: number;
   researcherName?: string;
@@ -42,6 +42,22 @@ interface HistoryRecord {
   createdBy?: string;
   created_by?: string;
   username?: string;
+}
+
+interface ApiHistoryRecord {
+  date_time?: string;
+  action?: string;
+  exchange?: string;
+  type?: string;
+  category?: string;
+  instrument?: string;
+  symbol?: string;
+  expiry?: string | null;
+  entry?: number | string;
+  exit?: number | string;
+  status?: string;
+  profit_loss?: number | null;
+  researcher_name?: string;
 }
 
 // Added Prop Interface
@@ -58,6 +74,22 @@ export default function RecommendationHistory({
   statusFilter = "All",
   enableAddNotification = false,
 }: RecommendationHistoryProps) {
+  const mapApiRowToHistory = (row: ApiHistoryRecord): HistoryRecord => ({
+    dateTime: row.date_time || "",
+    action: row.action || "-",
+    exchange: row.exchange || "-",
+    type: row.type || "-",
+    category: row.category || "-",
+    instrument: row.instrument || "-",
+    symbol: row.symbol || "-",
+    expiry: row.expiry ?? null,
+    entry: row.entry ?? "-",
+    exit: row.exit ?? "-",
+    status: row.status || "-",
+    profitLoss: Number(row.profit_loss ?? 0),
+    researcher_name: row.researcher_name,
+  });
+
   // State
   const [data, setData] = useState<HistoryRecord[]>([]);
   const [loading, setLoading] = useState(true);
@@ -77,24 +109,58 @@ export default function RecommendationHistory({
 
   // Fetch data
   useEffect(() => {
-    fetch("/recommendationHistory.json")
-      .then((res) => res.json())
-      .then((json) => {
-        const fetchedHistory = json.recommendationHistory || [];
+    const fetchHistory = async () => {
+      let localHistory: HistoryRecord[] = [];
 
-        let localHistory: HistoryRecord[] = [];
-        try {
-          const stored = window.localStorage.getItem(CLIENT_HISTORY_STORAGE_KEY);
-          const parsed = stored ? JSON.parse(stored) : [];
-          localHistory = Array.isArray(parsed) ? parsed : [];
-        } catch {
-          localHistory = [];
+      try {
+        const stored = window.localStorage.getItem(CLIENT_HISTORY_STORAGE_KEY);
+        const parsed = stored ? JSON.parse(stored) : [];
+        localHistory = Array.isArray(parsed) ? parsed : [];
+      } catch {
+        localHistory = [];
+      }
+
+      try {
+        const token = window.localStorage.getItem("token");
+
+        if (!token) {
+          throw new Error("No auth token found");
         }
 
-        setData([...localHistory, ...fetchedHistory]);
-      })
-      .catch((err) => console.error("Error fetching active call history:", err))
-      .finally(() => setLoading(false));
+        const res = await fetch(import.meta.env.VITE_API_URL + "/api/research/performance", {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+
+        if (!res.ok) {
+          throw new Error(`Performance API failed with status ${res.status}`);
+        }
+
+        const apiRows = await res.json();
+        const mappedRows = Array.isArray(apiRows)
+          ? apiRows.map((row) => mapApiRowToHistory(row))
+          : [];
+
+        setData([...localHistory, ...mappedRows]);
+      } catch (apiErr) {
+        console.error("Error fetching performance history API:", apiErr);
+
+        try {
+          const res = await fetch("/recommendationHistory.json");
+          const json = await res.json();
+          const fetchedHistory = json.recommendationHistory || [];
+          setData([...localHistory, ...fetchedHistory]);
+        } catch (jsonErr) {
+          console.error("Error fetching fallback recommendation history:", jsonErr);
+          setData(localHistory);
+        }
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchHistory();
   }, []);
 
   useEffect(() => {
@@ -150,9 +216,15 @@ export default function RecommendationHistory({
 
     // --- CONDITION FOR DASHBOARD ---
     if (statusFilter !== "All") {
-      result = result.filter(
-        (item) => item.status.toLowerCase() === statusFilter.toLowerCase()
-      );
+      const normalizedStatusFilter = statusFilter.toLowerCase();
+
+      if (normalizedStatusFilter === "active") {
+        result = result.filter((item) => item.status.toLowerCase() !== "closed");
+      } else {
+        result = result.filter(
+          (item) => item.status.toLowerCase() === normalizedStatusFilter
+        );
+      }
     }
 
     if (typesOfCall !== "All") {
@@ -442,7 +514,33 @@ export default function RecommendationHistory({
                 paginatedData.map((row, idx) => (
                   <TableRow key={idx} sx={{ "&:last-child td, &:last-child th": { border: 0 } }}>
                     <TableCell sx={historyBodyStyle}>{formatDateTime(row.dateTime)}</TableCell>
-                    <TableCell sx={historyBodyStyle}>{row.action}</TableCell>
+                    <TableCell sx={historyBodyStyle}>
+                      <Box
+                        sx={{
+                          display: "inline-block",
+                          px: 1.5,
+                          py: 0.5,
+                          borderRadius: "4px",
+                          fontSize: "0.75rem",
+                          fontWeight: 700,
+                          textTransform: "uppercase",
+                          backgroundColor:
+                            row.action.toUpperCase() === "BUY"
+                              ? "#DCFCE7"
+                              : row.action.toUpperCase() === "SELL"
+                                ? "#FEE2E2"
+                                : "#F3F4F6",
+                          color:
+                            row.action.toUpperCase() === "BUY"
+                              ? "#166534"
+                              : row.action.toUpperCase() === "SELL"
+                                ? "#991B1B"
+                                : "#374151",
+                        }}
+                      >
+                        {row.action}
+                      </Box>
+                    </TableCell>
                     <TableCell sx={historyBodyStyle}>{row.exchange}</TableCell>
                     <TableCell sx={historyBodyStyle}>{row.type}</TableCell>
                     <TableCell sx={historyBodyStyle}>{row.category}</TableCell>
@@ -468,10 +566,12 @@ export default function RecommendationHistory({
       // THE CONDITION:
       backgroundColor: 
         row.status.toLowerCase() === "active" ? "#DCFCE7" : // Light Green
+        row.status.toLowerCase() === "published" ? "#DCFCE7" : // Light Green
         row.status.toLowerCase() === "closed" ? "#FEF9C3" : // Light Yellow
         "#F3F4F6", // Default Gray
       color: 
         row.status.toLowerCase() === "active" ? "#166534" : // Dark Green
+        row.status.toLowerCase() === "published" ? "#166534" : // Dark Green
         row.status.toLowerCase() === "closed" ? "#854D0E" : // Dark Yellow/Brown
         "#374151", // Default Dark Gray
     }}
