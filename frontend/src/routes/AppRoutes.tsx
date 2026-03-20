@@ -53,7 +53,7 @@ const AppRoutes = () => {
       {/* --- 1. Main Dashboard Layout (EMPLOYEE + ADMIN) --- */}
       <Route
         element={
-          <ProtectedRoute allowedRoles={["EMPLOYEE", "ADMIN", "RA"]}>
+          <ProtectedRoute allowedRoles={["ADMIN", "RA"]}>
             <AppLayout />
           </ProtectedRoute>
         }
