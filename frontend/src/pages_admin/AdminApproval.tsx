@@ -20,6 +20,7 @@ import ArrowForwardIcon from "@mui/icons-material/ArrowForward";
 import Dialog from "@mui/material/Dialog";
 import DialogTitle from "@mui/material/DialogTitle";
 import DialogActions from "@mui/material/DialogActions";
+import { useNavigate } from "react-router-dom";
 
 import AdminFilter, { type AdminFilterValue } from "../assets/adminFilter";
 
@@ -56,6 +57,7 @@ const AdminApproval = () => {
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [confirmType, setConfirmType] = useState<"approve" | "reject" | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const navigate = useNavigate();
 
   const [brokerRows, setBrokerRows] = useState<any[]>([]);
   const [selectedBroker, setSelectedBroker] = useState<any | null>(null);
@@ -218,6 +220,42 @@ const handleApprove = async (id: string) => {
         setSelectedRA(null);
       }
     } else {
+
+    } catch (error) {
+      console.error(error);
+    }
+  };
+
+  /* ================= EDIT ================= */
+
+const handleEdit = (id: string) => {
+  navigate(`/admin/edit-ra/${id}`);
+};
+
+  /* ================= REJECT ================= */
+
+  const handleReject = async (id: string) => {
+
+    if (!rejectReason.trim()) {
+      alert("Please enter rejection reason");
+      return;
+    }
+
+    try {
+
+      const res = await fetch(
+        `http://localhost:3000/api/registration/reject/${id}`,
+        {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            reason: rejectReason,
+          }),
+        }
+      );
+
       const data = await res.json();
       alert(data.message || "Failed to approve");
     }
@@ -485,6 +523,14 @@ const handleReject = async (id: string) => {
             >
               Reject
             </Button>
+             <Button
+    variant="contained"
+    color="warning"
+    fullWidth
+    onClick={() => handleEdit(selectedRA.id)}
+  >
+    Edit
+  </Button>
 
           </Box>
 
