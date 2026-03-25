@@ -752,64 +752,67 @@ const NewRecommendation = () => {
 
   // Add this helper function outside or inside your component
 const getPriceError = (field: string, currentForm: any): string | null => {
-  const action = currentForm.action; // "BUY" or "SELL"
+  const action = currentForm.action;
 
-  // Convert all string values to numbers for comparison
+  // Group 1: Top Switched Row
   const eLow = parseFloat(currentForm.entryLow) || 0;
-  const eUpper = parseFloat(currentForm.entryUpper) || 0;
   const t2 = parseFloat(currentForm.target2) || 0;
-  const t3 = parseFloat(currentForm.target3) || 0;
   const sl2 = parseFloat(currentForm.stopLoss2) || 0;
+
+  // Group 2: Bottom Switched Row
+  const eUpper = parseFloat(currentForm.entryUpper) || 0;
+  const t3 = parseFloat(currentForm.target3) || 0;
   const sl3 = parseFloat(currentForm.stopLoss3) || 0;
 
-  // 1. RANGE GROUP: Lower Entry vs Upper Entry
-  // Logic: Lower must always be less than Upper, regardless of Action.
-  if (currentForm.rangeEnabled) {
-    if (field === "entryLow" && eUpper !== 0 && eLow >= eUpper) {
-      return "Low must be < Upper";
+  // --- BUY LOGIC ---
+  if (action === "BUY") {
+    // Top Row: SL2 < Lower Entry < T2
+    if (field === "entryLow") {
+      if (t2 && eLow >= t2) return "Must be < T2";
+      if (sl2 && eLow <= sl2) return "Must be > SL2";
     }
-    if (field === "entryUpper" && eLow !== 0 && eUpper <= eLow) {
-      return "Upper must be > Low";
+    if (field === "target2" && t2 <= eLow && eLow !== 0) return "T2 must be > Lower Entry";
+    if (field === "stopLoss2" && sl2 >= eLow && eLow !== 0) return "SL2 must be < Lower Entry";
+
+    // Bottom Row: SL3 < Upper Entry < T3
+    if (field === "entryUpper") {
+      if (t3 && eUpper >= t3) return "Must be < T3";
+      if (sl3 && eUpper <= sl3) return "Must be > SL3";
     }
+    if (field === "target3" && t3 <= eUpper && eUpper !== 0) return "T3 must be > Upper Entry";
+    if (field === "stopLoss3" && sl3 >= eUpper && eUpper !== 0) return "SL3 must be < Upper Entry";
+  } 
+  
+  // --- SELL LOGIC ---
+  else {
+    // Top Row: T2 < Lower Entry < SL2
+    if (field === "entryLow") {
+      if (t2 && eLow <= t2) return "Must be > T2";
+      if (sl2 && eLow >= sl2) return "Must be < SL2";
+    }
+    if (field === "target2" && t2 >= eLow && eLow !== 0) return "T2 must be < Lower Entry";
+    if (field === "stopLoss2" && sl2 <= eLow && eLow !== 0) return "SL2 must be > Lower Entry";
+
+    // Bottom Row: T3 < Upper Entry < SL3
+    if (field === "entryUpper") {
+      if (t3 && eUpper <= t3) return "Must be > T3";
+      if (sl3 && eUpper >= sl3) return "Must be < SL3";
+    }
+    if (field === "target3" && t3 >= eUpper && eUpper !== 0) return "T3 must be < Upper Entry";
+    if (field === "stopLoss3" && sl3 <= eUpper && eUpper !== 0) return "SL3 must be > Upper Entry";
   }
 
-  // 2. SECONDARY TARGET GROUP: T2 vs T3
-  if (currentForm.secondaryTargetEnabled) {
-    if (action === "BUY") {
-      // In BUY: T3 must be a higher price than T2
-      if (field === "target2" && t3 !== 0 && t2 >= t3) return "T2 must be < T3";
-      if (field === "target3" && t2 !== 0 && t3 <= t2) return "T3 must be > T2";
-    } else {
-      // In SELL: T3 must be a lower price than T2
-      if (field === "target2" && t3 !== 0 && t2 <= t3) return "T2 must be > T3";
-      if (field === "target3" && t2 !== 0 && t3 >= t2) return "T3 must be < T2";
-    }
-  }
-
-  // 3. STOP LOSS GROUP: SL2 vs SL3
-  if (currentForm.stopLoss2Enabled) {
-    if (action === "BUY") {
-      // In BUY: SL3 is a deeper/lower safety net than SL2
-      if (field === "stopLoss2" && sl3 !== 0 && sl2 <= sl3) return "SL2 must be > SL3";
-      if (field === "stopLoss3" && sl2 !== 0 && sl3 >= sl2) return "SL3 must be < SL2";
-    } else {
-      // In SELL: SL3 is a higher safety net than SL2
-      if (field === "stopLoss2" && sl3 !== 0 && sl2 >= sl3) return "SL2 must be < SL3";
-      if (field === "stopLoss3" && sl2 !== 0 && sl3 <= sl2) return "SL3 must be > SL2";
-    }
-  }
-
-  // 4. MAIN ROW: Entry, Target, Stop Loss (Kept Separate)
+  // --- MAIN ROW (Entry, Target, StopLoss) ---
   const entry = parseFloat(currentForm.entry) || 0;
-  const target = parseFloat(currentForm.target) || 0;
-  const stopLoss = parseFloat(currentForm.stopLoss) || 0;
+  const t1 = parseFloat(currentForm.target) || 0;
+  const sl1 = parseFloat(currentForm.stopLoss) || 0;
 
   if (action === "BUY") {
-    if (field === "target" && target <= entry) return "Target should be greater than Entry";
-    if (field === "stopLoss" && stopLoss >= entry) return "SL should be less than Entry";
+    if (field === "target" && t1 <= entry && entry !== 0) return "T1 must be > Entry";
+    if (field === "stopLoss" && sl1 >= entry && entry !== 0) return "SL1 must be < Entry";
   } else {
-    if (field === "target" && target >= entry) return "Target < Entry";
-    if (field === "stopLoss" && stopLoss <= entry) return "SL > Entry";
+    if (field === "target" && t1 >= entry && entry !== 0) return "T1 must be < Entry";
+    if (field === "stopLoss" && sl1 <= entry && entry !== 0) return "SL1 must be > Entry";
   }
 
   return null;
