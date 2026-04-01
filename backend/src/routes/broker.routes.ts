@@ -1,5 +1,5 @@
 import express from "express";
-import { createBroker } from "../controllers/broker.controller";
+import { createBroker, getAllBrokers } from "../controllers/broker.controller";
 import { upload } from "../middlewares/upload";
 
 const router = express.Router();
@@ -16,5 +16,6 @@ router.post(
   ]),
   createBroker
 );
+router.get("/all-brokers", getAllBrokers);
 
 export default router;
