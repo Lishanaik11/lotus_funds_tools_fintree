@@ -189,53 +189,21 @@ const AdminDashboard = () => {
     setParticipantUsername("");
   };
 
-  const fetchParticipants = async (selectTelegramId?: string) => {
-    const token = localStorage.getItem("token");
-    if (!token) {
-      alert("Authorization token missing. Please login again.");
-      return;
+  const fetchParticipants = async () => {
+  try {
+    const response = await fetch('http://localhost:3000/api/telegram/participants');
+    
+    // Check if the response is actually OK before parsing JSON
+    if (!response.ok) {
+      throw new Error(`Server responded with ${response.status}`);
     }
 
-    setParticipantLoading(true);
-    try {
-      const res = await fetch(
-        `http://localhost:3000/api/telegram/participants`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
-
-      const data = await res.json();
-
-      if (!res.ok) {
-        alert(data?.error || "Failed to load participants");
-        return;
-      }
-
-      const list: Array<{
-        telegram_id: string;
-        telegram_client_name: string;
-      }> = Array.isArray(data.participants) ? data.participants : [];
-      setParticipantsList(list);
-
-      const found = selectTelegramId
-        ? list.find((p) => String(p.telegram_id) === String(selectTelegramId))
-        : null;
-
-      const selected = found || list[0] || null;
-
-      setParticipant(selected);
-      setParticipantUsername(selected?.telegram_client_name || "");
-      setParticipantSearchQuery("");
-    } catch (error: any) {
-      console.error(error);
-      alert("Failed to load participants");
-    } finally {
-      setParticipantLoading(false);
-    }
-  };
+    const data = await response.json();
+    setParticipantsList(data);
+  } catch (error) {
+    console.error("Fetch error:", error);
+  }
+};
 
   const handleViewParticipant = (row: AdminRow) => {
     setPanelMode("participant");
@@ -399,9 +367,6 @@ const AdminDashboard = () => {
                       gap: 0.75,
                     }}
                   >
-                    <Typography variant="body2">
-                      {row.telegram || ""}
-                    </Typography>
                     <Button
                       size="small"
                       variant="outlined"
@@ -428,18 +393,18 @@ const AdminDashboard = () => {
       {/* SIDE PANEL */}
       {selectedRA && (
         <Paper
-          elevation={4}
-          sx={{
-            position: "fixed",
-            right: 20,
-            top: 120,
-            width: 450,
-            p: 3,
-            borderRadius: 2,
-            maxHeight: "calc(100vh - 140px)",
-            overflowY: "auto",
-          }}
-        >
+  elevation={4}
+  sx={{
+    position: "fixed",
+    right: 20,
+    top: 120,
+    width: 600,   // 👈 increased from 450 → 800
+    p: 3,
+    borderRadius: 2,
+    maxHeight: "calc(100vh - 140px)",
+    overflowY: "auto",
+  }}
+>
           <Button
             size="small"
             onClick={closePanel}
@@ -510,136 +475,124 @@ const AdminDashboard = () => {
             </>
           ) : (
             <>
-              <Typography fontWeight={600}>View Participant</Typography>
-              <Box sx={{ mt: 2 }}>
-                <Typography fontWeight={600} sx={{ mb: 1 }}>
-                  Participants
-                </Typography>
+            <Box
+  sx={{
+    width: "95%",   // 👈 takes almost full screen
+    mx: "auto",
+  }}
+>
+  <Typography fontWeight={600}>View Participant</Typography>
 
-                <Typography color="text.secondary" sx={{ mb: 1, mt: 1 }}>
-                  Search User
-                </Typography>
-                <TextField
-                  fullWidth
-                  size="small"
-                  placeholder="Search by Phone or Username"
-                  value={participantSearchQuery}
-                  onChange={(e) => setParticipantSearchQuery(e.target.value)}
-                  sx={{ mb: 1 }}
-                  InputProps={{
-                    startAdornment: (
-                      <InputAdornment position="start">
-                        <SearchIcon fontSize="small" />
-                      </InputAdornment>
-                    ),
+  {/* Participants Section */}
+  <Box sx={{ mt: 2 }}>
+    <Typography fontWeight={600} sx={{ mb: 1 }}>
+      Participants
+    </Typography>
+
+    <Typography color="text.secondary" sx={{ mb: 1, mt: 1 }}>
+      Search User
+    </Typography>
+
+    <TextField
+      fullWidth
+      size="small"
+      placeholder="Search by Phone or Username"
+      value={participantSearchQuery}
+      onChange={(e) => setParticipantSearchQuery(e.target.value)}
+      sx={{ mb: 2 }}
+      InputProps={{
+        startAdornment: (
+          <InputAdornment position="start">
+            <SearchIcon fontSize="small" />
+          </InputAdornment>
+        ),
+      }}
+    />
+
+    {participantLoading ? (
+      <Typography>Loading...</Typography>
+    ) : (
+      <TableContainer component={Paper} sx={{ overflowX: "auto" }}>
+        <Table size="small" sx={{ minWidth: 400 }}>
+          <TableHead>
+            <TableRow>
+              <TableCell>Phone</TableCell>
+              <TableCell>Username</TableCell>
+              <TableCell>Userid</TableCell>
+            </TableRow>
+          </TableHead>
+
+          <TableBody>
+            {participantsList
+              .filter((p) => {
+                const q = participantSearchQuery.trim().toLowerCase();
+                if (!q) return true;
+                return (
+                  String(p.phone_number || "").toLowerCase().includes(q) ||
+                  String(p.telegram_client_name || "").toLowerCase().includes(q) ||
+                  String(p.telegram_user_id || "").toLowerCase().includes(q)
+                );
+              })
+              .map((p) => (
+                <TableRow
+                  key={p.user_id}
+                  hover
+                  selected={participant?.user_id === p.user_id}
+                  onClick={() => {
+                    setParticipant(p);
+                    setParticipantUsername(p.telegram_client_name || "");
                   }}
-                />
-
-                {participantLoading ? (
-                  <Typography>Loading...</Typography>
-                ) : (
-                  <Table size="small">
-                    <TableHead>
-                      <TableRow>
-                        <TableCell>Phone</TableCell>
-                        <TableCell>Username</TableCell>
-                      </TableRow>
-                    </TableHead>
-                    <TableBody>
-                      {participantsList
-                        .filter((p) => {
-                          const q = participantSearchQuery.trim().toLowerCase();
-                          if (!q) return true;
-                          return (
-                            String(p.telegram_id || "")
-                              .toLowerCase()
-                              .includes(q) ||
-                            String(p.telegram_client_name || "")
-                              .toLowerCase()
-                              .includes(q)
-                          );
-                        })
-                        .length === 0 ? (
-                        <TableRow>
-                          <TableCell colSpan={2} align="center">
-                            No participants found
-                          </TableCell>
-                        </TableRow>
-                      ) : (
-                        participantsList
-                          .filter((p) => {
-                            const q = participantSearchQuery
-                              .trim()
-                              .toLowerCase();
-                            if (!q) return true;
-                            return (
-                              String(p.telegram_id || "")
-                                .toLowerCase()
-                                .includes(q) ||
-                              String(p.telegram_client_name || "")
-                                .toLowerCase()
-                                .includes(q)
-                            );
-                          })
-                          .map((p) => (
-                            <TableRow
-                              key={p.telegram_id}
-                              hover
-                              selected={participant?.telegram_id === p.telegram_id}
-                              onClick={() => {
-                                setParticipant(p);
-                                setParticipantUsername(
-                                  p.telegram_client_name || ""
-                                );
-                              }}
-                              sx={{ cursor: "pointer" }}
-                            >
-                              <TableCell>{p.telegram_id}</TableCell>
-                              <TableCell>{p.telegram_client_name}</TableCell>
-                            </TableRow>
-                          ))
-                      )}
-                    </TableBody>
-                  </Table>
-                )}
-              </Box>
-
-              {/* Create */}
-              <Box sx={{ mt: 2 }}>
-                <Typography fontWeight={600} sx={{ mb: 1 }}>
-                  Add New Participant
-                </Typography>
-                <TelegramSearch
-                  onSaved={(telegramUserId) => {
-                    if (telegramUserId) {
-                      fetchParticipants(String(telegramUserId));
-                    }
-                  }}
-                />
-              </Box>
-
-              {/* Update / Delete */}
-              <Box sx={{ display: "flex", gap: 1, mt: 2 }}>
-                <Button
-                  variant="contained"
-                  color="primary"
-                  fullWidth
-                  disabled={!participant || participantLoading}
-                  onClick={handleUpdateParticipant}
+                  sx={{ cursor: "pointer" }}
                 >
-                  Update
-                </Button>
+                  <TableCell>{p.phone_number || "N/A"}</TableCell>
+                  <TableCell>{p.telegram_client_name}</TableCell>
+                  <TableCell>{p.telegram_user_id}</TableCell>
+                </TableRow>
+              ))}
+          </TableBody>
+        </Table>
+      </TableContainer>
+    )}
+  </Box>
 
-                <Button
-                  variant="contained"
-                  color="error"
-                  fullWidth
-                  disabled={!participant || participantLoading}
-                  onClick={handleDeleteParticipant}
-                >
-                  Delete
-                </Button>
-              </Box>
+  {/* Add New Participant */}
+  <Box sx={{ mt: 3 }}>
+    <Typography fontWeight={600} sx={{ mb: 1 }}>
+      Add New Participant
+    </Typography>
+
+    <TelegramSearch
+      onSaved={(telegramUserId) => {
+        if (telegramUserId) {
+          fetchParticipants(String(telegramUserId));
+        }
+      }}
+    />
+  </Box>
+
+  {/* Update / Delete Buttons */}
+  <Box sx={{ display: "flex", gap: 2, mt: 3 }}>
+    <Button
+      variant="contained"
+      color="primary"
+      fullWidth
+      disabled={!participant || participantLoading}
+      onClick={handleUpdateParticipant}
+    >
+      Update
+    </Button>
+
+    <Button
+      variant="contained"
+      color="error"
+      fullWidth
+      disabled={!participant || participantLoading}
+      onClick={handleDeleteParticipant}
+    >
+      Delete
+    </Button>
+  </Box>
+</Box>
             </>
           )}
         </Paper>

@@ -18,6 +18,7 @@ export const TelegramSearch = ({ onSaved }: TelegramSearchProps) => {
 
   const [username, setUsername] = useState("");
   const [telegramId, setTelegramId] = useState("");
+  const [phoneNumber, setPhoneNumber] = useState("");
 
   const handleSave = async () => {
   try {
@@ -41,54 +42,67 @@ export const TelegramSearch = ({ onSaved }: TelegramSearchProps) => {
   }
 };
   return (
-    <Box sx={{ p: 4, maxWidth: 800 }}>
-      {/* <Typography variant="h5" sx={{ mb: 3, fontWeight: 'bold', color: '#333' }}>
-        Telegram Configuration
-      </Typography> */}
-      
-      <Paper elevation={0} sx={{ p: 3, border: '1px solid #e0e0e0', borderRadius: 2 }}>
-        <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", md: "1fr 1fr" }, gap: 3 }}>
-          <Box>
-            <TextField
-              fullWidth
-              label="Telegram Username"
-              placeholder="@username"
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
-            />
-          </Box>
+  <Box sx={{ p: 1, maxWidth: 1000 }}> {/* 👈 slightly wider */}
+    <Paper
+      elevation={0}
+      sx={{ p: 3, border: "1px solid #e0e0e0", borderRadius: 2 }}
+    >
+      <Box
+        sx={{
+          display: "grid",
+          gridTemplateColumns: { xs: "1fr", md: "1fr 1fr 1fr" }, // 👈 3 in one row
+          gap: 3,
+        }}
+      >
+        {/* Telegram Username */}
+        <TextField
+          fullWidth
+          label="Telegram Username"
+          placeholder="@username"
+          value={username}
+          onChange={(e) => setUsername(e.target.value)}
+        />
 
-          <Box>
-            <TextField
-              fullWidth
-              label="Telegram ID"
-              placeholder="123456789"
-              value={telegramId}
-              onChange={(e) => setTelegramId(e.target.value)}
-            />
-          </Box>
+        {/* Telegram ID */}
+        <TextField
+          fullWidth
+          label="Telegram ID"
+          placeholder="123456789"
+          value={telegramId}
+          onChange={(e) => setTelegramId(e.target.value)}
+        />
 
-          <Box sx={{ gridColumn: { xs: "1 / -1", md: "1 / -1" } }}>
-            <Button 
-              variant="contained" 
-              size="large"
-              startIcon={<SendIcon />}
-              onClick={handleSave}
-              sx={{ 
-                backgroundColor: '#22C55E', 
-                '&:hover': { backgroundColor: '#1a9d4b' },
-                textTransform: 'none',
-                px: 4,
-                fontWeight: '600'
-              }}
-            >
-              Save Details
-            </Button>
-          </Box>
+        {/* Phone Number */}
+        <TextField
+          fullWidth
+          label="Phone Number"
+          placeholder="+1234567890"
+          value={phoneNumber}
+          onChange={(e) => setPhoneNumber(e.target.value)}
+        />
+
+        {/* Save Button */}
+        <Box sx={{ gridColumn: "1 / -1", mt: 1 }}>
+          <Button
+            variant="contained"
+            size="large"
+            startIcon={<SendIcon />}
+            onClick={handleSave}
+            sx={{
+              backgroundColor: "#22C55E",
+              "&:hover": { backgroundColor: "#1a9d4b" },
+              textTransform: "none",
+              px: 4,
+              fontWeight: "600",
+            }}
+          >
+            Save Details
+          </Button>
         </Box>
-      </Paper>
-    </Box>
-  );
+      </Box>
+    </Paper>
+  </Box>
+);
 };
 
 export default TelegramSearch;

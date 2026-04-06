@@ -1,6 +1,6 @@
 import { Request, Response } from "express";
 import { client } from "../telegramClient";
-
+import { pool } from "../db";
 /**
  * Utility: sleep (for flood wait handling)
  */
@@ -128,3 +128,19 @@ export const sendBulkTelegramMessages = async (
     });
   }
 };
+
+export const getAllUsers = async (req: Request, res: Response) => {
+  try {
+    // We use a string query because TelegramUser is just a TYPE for the result
+    const result = await pool.query(
+      "SELECT user_id, telegram_user_id, telegram_client_name, phone_number FROM telegram_users"
+    );
+
+    // result.rows will match your TelegramUser interface
+    return res.status(200).json(result.rows);
+  } catch (error) {
+    console.error("Error fetching users:", error);
+    return res.status(500).json({ message: "Internal Server Error" });
+  }
+};
+
