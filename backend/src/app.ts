@@ -9,7 +9,7 @@ import registrationRoutes from "./routes/registration.routes";
 // import adminRoutes from "./routes/admin.routes";
 import path from "path";
 import telegramRoutes from "./routes/telegram.routes";
-import { initTelegram } from "./telegramClient";
+//import { initTelegram } from "./telegramClient";
 
 const app = express();
 
@@ -37,28 +37,31 @@ app.use(express.json());
 // console.log("🔥 Admin route import:", adminRoutes);
 
 app.use("/uploads", express.static(path.join(__dirname, "../uploads")));
-app.use("/api", authRoutes);
+//app.use("/api", authRoutes);
 app.use("/api", researchRoutes);
 // app.use("/api", debugRoutes);
 app.use("/api/auth", authRoutes);
 app.use("/api/broker", brokerRoutes);
 app.use("/uploads", express.static(path.join(process.cwd(), "uploads")));
 app.use("/api/registration", registrationRoutes);
+// app.use("/api", telegramRoutes);
+// app.use("/api/telegram", telegramRoutes);
 app.use("/api", telegramRoutes);
 app.use("/api/telegram", telegramRoutes);
 
 // app.use("/admin", adminRoutes);
 app.use("/api/telegram", telegramRoutes);
 
-app.get("/api/health", (_req, res) => {
-  res.json({ status: "OK" });
-});
+// app.get("/api/health", (_req, res) => {
+//   res.json({ status: "OK" });
+// });
 
 
 // const PORT = process.env.PORT || 5000;
 
 // async function startServer() {
 //   await initTelegram();
+  //await initTelegram();
 
 //   app.listen(PORT, () => {
 //     console.log(`🚀 Server running on port ${PORT}`);

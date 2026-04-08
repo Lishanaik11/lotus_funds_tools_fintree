@@ -82,10 +82,6 @@ export const createBroker = async (req: Request, res: Response) => {
       authorized_person_aadhaar,
       authorized_person_mobile,
 
-      role,
-      permissions,
-      authorized_person_segments,
-
       no_disciplinary_action,
       no_suspension,
       no_criminal_case,
@@ -103,7 +99,7 @@ export const createBroker = async (req: Request, res: Response) => {
       $35,$36,$37,$38,
       $39,$40,$41,$42,$43,$44,
       $45,$46,$47,
-      $48,$49,$50,$51,$52
+      $48,$49
     )
     RETURNING *;
     `;
@@ -163,10 +159,6 @@ export const createBroker = async (req: Request, res: Response) => {
       data.authorized_person_aadhaar,
       data.authorized_person_mobile,
 
-      data.role,
-      data.permissions,
-      data.authorized_person_segments,
-
       data.no_disciplinary_action,
       data.no_suspension,
       data.no_criminal_case,
@@ -188,4 +180,14 @@ export const createBroker = async (req: Request, res: Response) => {
     error
   });
 }
+};
+
+export const getAllBrokers = async (req: Request, res: Response) => {
+  try {
+    const result = await pool.query("SELECT * FROM broker_details ORDER BY created_at DESC");
+    res.status(200).json(result.rows);
+  } catch (error) {
+    console.error("GET ALL BROKERS ERROR:", error);
+    res.status(500).json({ message: "Failed to fetch brokers" });
+  }
 };

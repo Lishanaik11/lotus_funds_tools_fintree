@@ -7,8 +7,7 @@ dotenv.config();
 
 const apiId = Number(process.env.TELEGRAM_API_ID);
 const apiHash = process.env.TELEGRAM_API_HASH!;
-const stringSession = new StringSession(process.env.TELEGRAM_SESSION || "");
-
+const stringSession = new StringSession("");
 function ask(question: string): Promise<string> {
   const rl = readline.createInterface({
     input: process.stdin,

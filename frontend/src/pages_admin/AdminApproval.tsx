@@ -28,6 +28,7 @@ type AdminRow = {
   id: string;
   name: string;
   phone: string;
+  type: "RA" | "Broker";
 
   profile?: string;
   pan?: string;
@@ -36,6 +37,13 @@ type AdminRow = {
   sebi_receipt?: string;
   nism?: string;
   cheque?: string;
+
+  sebi_certificate?: string;
+  exchange_certificates?: string[]; // exchange_certificates text[]
+  appointment_letter?: string;     // appointment_letter text
+  networth_certificate?: string;   // networth_certificate text
+  financial_statements?: string;   // financial_statements text
+  ca_certificate?: string;
 
   status: "Pending" | "Approved" | "Rejected" | string;
   rejectionReason?: string;
@@ -57,6 +65,11 @@ const AdminApproval = () => {
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [confirmType, setConfirmType] = useState<"approve" | "reject" | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
+
+  const [brokerRows, setBrokerRows] = useState<AdminRow[]>([]);
+const [brokerSearch, setBrokerSearch] = useState("");
+const [selectedBroker, setSelectedBroker] = useState<AdminRow | null>(null);
+
   const navigate = useNavigate();
 
   /* ================= LOAD DATA ================= */
@@ -71,7 +84,7 @@ const AdminApproval = () => {
         const data = await response.json();
 
         const formatted = data.map((item: any) => ({
-          id: item.id,
+           id: item.user_id || item.id,
           name: `${item.first_name || ""} ${item.surname || ""}`,
           phone: item.mobile || "",
 
@@ -98,6 +111,45 @@ const AdminApproval = () => {
 
     load();
   }, []);
+
+  /* ================= LOAD BROKER DATA ================= */
+useEffect(() => {
+  const loadBrokers = async () => {
+    try {
+      // Make sure this matches the route you just created: /all-brokers
+      const response = await fetch("http://localhost:3000/api/broker/all-brokers");
+
+      if (!response.ok) {
+         throw new Error("Route not found");
+      }
+
+      const data = await response.json();
+
+      const formatted = data.map((item: any) => ({
+        id: item.id,
+        name: item.legal_name || "N/A", // Using names from your SQL query
+        phone: item.mobile || "",
+        status: item.status || "Pending",
+        logo: item.sebi_certificate, // Mapping files from your DB
+        pan: item.pan,
+        license: item.sebi_registration_no,
+        sebi_certificate: item.sebi_certificate,
+    appointment_letter: item.appointment_letter,
+    networth_certificate: item.networth_certificate,
+    financial_statements: item.financial_statements,
+    ca_certificate: item.ca_certificate,
+    exchange_certificates: item.exchange_certificates || [],
+        "age/time": "New",
+      }));
+
+      setBrokerRows(formatted);
+    } catch (error) {
+      console.error("Broker fetch failed:", error);
+    }
+  };
+
+  loadBrokers();
+}, []);
 
   useEffect(() => {
     setPage(1);
@@ -155,44 +207,61 @@ const AdminApproval = () => {
 
   /* ================= APPROVE ================= */
 
-  const handleApprove = async (id: string) => {
+const handleApprove = async (id: string) => {
+  try {
+    console.log("Calling API...");
 
+    const res = await fetch(
+      "http://localhost:3000/admin/approve-user",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          userId: id,
+        }),
+      }
+    );
+
+    console.log("Response received");
+
+    // ✅ SAFE PARSE (VERY IMPORTANT)
+    const text = await res.text();
+
+    let data;
     try {
+      data = JSON.parse(text);
+    } catch {
+      console.error("Invalid JSON:", text);
+      alert("Server error");
+      return;
+    }
 
-      const res = await fetch(
-        `http://localhost:3000/api/registration/approve/${id}`,
-        { method: "PUT" }
+    if (res.ok) {
+      alert("User Approved & Email Sent ✅");
+
+      // ✅ UPDATE UI (IMPORTANT)
+      setRows((prev) =>
+        prev.map((r) =>
+          r.id === id ? { ...r, status: "Approved" } : r
+        )
       );
 
-      const data = await res.json();
-
-      if (res.ok) {
-
-        alert("User Approved Successfully");
-
-        setRows((prev) =>
-          prev.map((r) =>
-            r.id === id ? { ...r, status: "Approved" } : r
-          )
-        );
-
-        setSelectedRA(null);
-
-      } else {
-
-        alert(data.message || "Failed to approve");
-      }
-
-    } catch (error) {
-      console.error(error);
+    } else {
+      alert(data.message || "Failed to approve");
     }
-  };
+
+  } catch (error) {
+    console.error("FETCH ERROR:", error);
+  }
+};
 
   /* ================= EDIT ================= */
 
-const handleEdit = (id: string) => {
-  navigate(`/admin/edit-ra/${id}`);
-};
+  const handleEdit = (id: string) => {
+    navigate(`/admin/edit-ra/${id}`);
+  };
 
   /* ================= REJECT ================= */
 
@@ -294,7 +363,7 @@ const handleEdit = (id: string) => {
 
             {paginatedRows.map((row) => (
 
-              <TableRow key={row.id}>
+              <TableRow key={row.id || Math.random()}>
 
                 <TableCell>{row.name}</TableCell>
                 <TableCell>{row.phone}</TableCell>
@@ -315,7 +384,7 @@ const handleEdit = (id: string) => {
                     variant="outlined"
                     onClick={() => setSelectedRA(row)}
                   >
-                    View
+                    View Details
                   </Button>
                 </TableCell>
 
@@ -349,6 +418,7 @@ const handleEdit = (id: string) => {
             width: 330,
             p: 2,
             borderRadius: 2,
+            zIndex: 1200,
           }}
         >
 
@@ -412,14 +482,14 @@ const handleEdit = (id: string) => {
             >
               Reject
             </Button>
-             <Button
-    variant="contained"
-    color="warning"
-    fullWidth
-    onClick={() => handleEdit(selectedRA.id)}
-  >
-    Edit
-  </Button>
+            <Button
+              variant="contained"
+              color="warning"
+              fullWidth
+              onClick={() => handleEdit(selectedRA.id)}
+            >
+              Edit
+            </Button>
 
           </Box>
 
@@ -481,6 +551,137 @@ const handleEdit = (id: string) => {
         />
 
       )}
+
+      {/* ================= BROKER TABLE ================= */}
+<Box sx={{ display: "flex", flexDirection: "column", gap: 2, mt: 6 }}>
+  <Typography variant="h5" fontWeight={600}>
+    Broker Approval
+  </Typography>
+
+  <TextField
+    placeholder="Search brokers by name or mobile"
+    fullWidth
+    size="small"
+    value={brokerSearch}
+    onChange={(e) => setBrokerSearch(e.target.value)}
+    InputProps={{
+      startAdornment: (
+        <InputAdornment position="start">
+          <SearchIcon fontSize="small" />
+        </InputAdornment>
+      ),
+    }}
+  />
+
+  <TableContainer component={Paper} variant="outlined">
+    <Table size="small">
+      <TableHead sx={{ backgroundColor: "#f0f7ff" }}>
+        <TableRow>
+          <TableCell>Broker Name</TableCell>
+          <TableCell>Phone</TableCell>
+          <TableCell>Status</TableCell>
+          <TableCell align="right">Action</TableCell>
+        </TableRow>
+      </TableHead>
+      <TableBody>
+        {brokerRows
+          .filter(b => 
+            b.name.toLowerCase().includes(brokerSearch.toLowerCase()) || 
+            b.phone.includes(brokerSearch)
+          )
+          .map((broker) => (
+            <TableRow key={broker.id}>
+              <TableCell>{broker.name}</TableCell>
+              <TableCell>{broker.phone}</TableCell>
+              <TableCell>
+                <Chip
+                  size="small"
+                  label={broker.status}
+                  color={statusColor(broker.status) as any}
+                />
+              </TableCell>
+              <TableCell align="right">
+                <Button
+                  size="small"
+                  variant="outlined"
+                  onClick={() => setSelectedBroker(broker)}
+                >
+                  View Details
+                </Button>
+              </TableCell>
+            </TableRow>
+          ))}
+      </TableBody>
+    </Table>
+  </TableContainer>
+</Box>
+
+{/* BROKER SIDE PANEL */}
+{selectedBroker && (
+  <Paper
+    elevation={4}
+    sx={{
+      position: "fixed",
+      right: 20,
+      top: 120,
+      width: 330,
+      p: 2,
+      borderRadius: 2,
+      zIndex: 1000
+    }}
+  >
+    <Button
+      size="small"
+      onClick={() => setSelectedBroker(null)}
+      sx={{ position: "absolute", right: 10, top: 10 }}
+    >
+      X
+    </Button>
+
+    <Typography fontWeight={600}>Broker Verification</Typography>
+    <Typography sx={{ mt: 1 }}>{selectedBroker.name}</Typography>
+    
+    <Box sx={{ mt: 2, display: "flex", flexDirection: "column", gap: 1 }}>
+  {/* Standard Single Files */}
+  {selectedBroker.sebi_certificate && (
+    <Button onClick={() => openFile(selectedBroker.sebi_certificate)}>View SEBI Certificate</Button>
+  )}
+  
+  {selectedBroker.appointment_letter && (
+    <Button onClick={() => openFile(selectedBroker.appointment_letter)}>View Appointment Letter</Button>
+  )}
+  
+  {selectedBroker.networth_certificate && (
+    <Button onClick={() => openFile(selectedBroker.networth_certificate)}>View Networth Certificate</Button>
+  )}
+  
+  {selectedBroker.financial_statements && (
+    <Button onClick={() => openFile(selectedBroker.financial_statements)}>View Financial Statements</Button>
+  )}
+  
+  {selectedBroker.ca_certificate && (
+    <Button onClick={() => openFile(selectedBroker.ca_certificate)}>View CA Certificate</Button>
+  )}
+
+  {selectedBroker.pan && (
+    <Button onClick={() => openFile(selectedBroker.pan)}>View Company PAN</Button>
+  )}
+
+  {/* Multiple Files: Exchange Certificates */}
+  {selectedBroker.exchange_certificates && 
+   selectedBroker.exchange_certificates.map((file: string, index: number) => (
+    <Button key={index} onClick={() => openFile(file)}>
+      View Exchange Cert {index + 1}
+    </Button>
+  ))}
+</Box>
+
+    <Box sx={{ display: "flex", gap: 1, mt: 3 }}>
+      <Button variant="contained" color="success" fullWidth>Approve</Button>
+      <Button variant="contained" color="error" fullWidth>Reject</Button>
+    </Box>
+  </Paper>
+)}
 
     </Box>
   );

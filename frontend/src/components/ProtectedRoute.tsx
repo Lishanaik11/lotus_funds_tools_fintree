@@ -1,49 +1,52 @@
+import { Navigate, useLocation } from "react-router-dom";
 import { useEffect, useState } from "react";
-import { Navigate } from "react-router-dom";
 import axios from "axios";
 
 interface Props {
-    children: JSX.Element;
-    allowedRoles?: string[];
+  children: JSX.Element;
+  allowedRoles?: string[];
 }
 
-const ProtectedRoute = ({ children, allowedRoles }: Props) => {
-    const [isValid, setIsValid] = useState<boolean | null>(null);
+const ProtectedRoute: React.FC<Props> = ({ children, allowedRoles }) => {
+  const [isValid, setIsValid] = useState<boolean | null>(null);
+  const location = useLocation();
 
-    useEffect(() => {
-        const token = localStorage.getItem("token");
-        const role = localStorage.getItem("role");
+  // ✅ Public routes that do NOT require token
+  const publicRoutes = ["/set-password"];
 
-        if (!token) {
-            setIsValid(false);
-            return;
-        }
+  if (publicRoutes.some((route) => location.pathname.startsWith(route))) {
+    return children; // allow freely
+  }
 
-        axios
-            .get(`${import.meta.env.VITE_API_URL}/api/auth/me`, {
-                headers: { Authorization: `Bearer ${token}` },
-            })
-            .then(() => {
-                if (allowedRoles && !allowedRoles.includes(role || "")) {
-                    setIsValid(false);
-                } else {
-                    setIsValid(true);
-                }
-            })
-            .catch(() => {
-                localStorage.clear();
-                setIsValid(false);
-            });
-    }, []);
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    const role = localStorage.getItem("role");
 
-    if (isValid === null) return <div>Loading...</div>;
-
-    // 🔑 always redirect to /login if not authenticated
-    if (!isValid) {
-        return <Navigate to="/login" replace />;
+    if (!token) {
+      setIsValid(false);
+      return;
     }
 
-    return children;
+    axios
+      .get(`${import.meta.env.VITE_API_URL}/api/auth/me`, {
+        headers: { Authorization: `Bearer ${token}` },
+      })
+      .then(() => {
+        if (allowedRoles && !allowedRoles.includes(role || "")) {
+          setIsValid(false);
+        } else {
+          setIsValid(true);
+        }
+      })
+      .catch(() => {
+        localStorage.clear();
+        setIsValid(false);
+      });
+  }, []);
+
+  if (isValid === null) return <div>Loading...</div>;
+
+  return isValid ? children : <Navigate to="/login" replace />;
 };
 
 export default ProtectedRoute;

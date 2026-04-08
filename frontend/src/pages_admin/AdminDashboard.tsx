@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
@@ -53,19 +52,24 @@ const AdminDashboard = () => {
   const [selectedRA, setSelectedRA] = useState<AdminRow | null>(null);
   const [panelMode, setPanelMode] = useState<"ra" | "participant">("ra");
 
-  const [participant, setParticipant] = useState<{
-    telegram_id: string;
-    telegram_client_name: string;
-  } | null>(null);
-  const [participantsList, setParticipantsList] = useState<
-    Array<{
-      telegram_id: string;
-      telegram_client_name: string;
-    }>
-  >([]);
+  type Participant = {
+  id: string;
+  telegram_user_id: number;
+  telegram_client_name: string;
+  phone_number?: string;
+};
+
+  const [participantsList, setParticipantsList] = useState<Participant[]>([]);
+  const [participant, setParticipant] = useState<Participant | null>(null);
   const [participantUsername, setParticipantUsername] = useState("");
   const [participantLoading, setParticipantLoading] = useState(false);
   const [participantSearchQuery, setParticipantSearchQuery] = useState("");
+
+  const [editingCell, setEditingCell] = useState<{
+  id: string;
+  field: string;
+  value: string;
+} | null>(null);
 
   const navigate = useNavigate();
 
@@ -189,53 +193,31 @@ const AdminDashboard = () => {
     setParticipantUsername("");
   };
 
-  const fetchParticipants = async (selectTelegramId?: string) => {
-    const token = localStorage.getItem("token");
-    if (!token) {
-      alert("Authorization token missing. Please login again.");
-      return;
+  const fetchParticipants = async (telegram_user_id?: string) => {
+  try {
+    setParticipantLoading(true); // ✅ START loading
+
+    let url = "http://localhost:3000/api/telegram/participants";
+
+    if (telegram_user_id) {
+      url += `?telegram_user_id=${telegram_user_id}`;
     }
 
-    setParticipantLoading(true);
-    try {
-      const res = await fetch(
-        `http://localhost:3000/api/telegram/participants`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
+    const response = await fetch(url);
 
-      const data = await res.json();
-
-      if (!res.ok) {
-        alert(data?.error || "Failed to load participants");
-        return;
-      }
-
-      const list: Array<{
-        telegram_id: string;
-        telegram_client_name: string;
-      }> = Array.isArray(data.participants) ? data.participants : [];
-      setParticipantsList(list);
-
-      const found = selectTelegramId
-        ? list.find((p) => String(p.telegram_id) === String(selectTelegramId))
-        : null;
-
-      const selected = found || list[0] || null;
-
-      setParticipant(selected);
-      setParticipantUsername(selected?.telegram_client_name || "");
-      setParticipantSearchQuery("");
-    } catch (error: any) {
-      console.error(error);
-      alert("Failed to load participants");
-    } finally {
-      setParticipantLoading(false);
+    if (!response.ok) {
+      throw new Error(`Server responded with ${response.status}`);
     }
-  };
+
+    const data = await response.json();
+    setParticipantsList(data);
+
+  } catch (error) {
+    console.error("Fetch error:", error);
+  } finally {
+    setParticipantLoading(false); // ✅ STOP loading (VERY IMPORTANT)
+  }
+};
 
   const handleViewParticipant = (row: AdminRow) => {
     setPanelMode("participant");
@@ -248,17 +230,13 @@ const AdminDashboard = () => {
   };
 
   const handleUpdateParticipant = async () => {
-    if (!participant) return;
+  if (!participant) return;
 
-    const token = localStorage.getItem("token");
-    if (!token) {
-      alert("Authorization token missing. Please login again.");
-      return;
-    }
-
+  const token = localStorage.getItem("token");
+  try {
     const res = await fetch(
       `http://localhost:3000/api/telegram/participant/${encodeURIComponent(
-        participant.telegram_id
+        participant.telegram_user_id
       )}`,
       {
         method: "PUT",
@@ -267,7 +245,8 @@ const AdminDashboard = () => {
           Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
-          telegram_client_name: participantUsername,
+          telegram_client_name: participant.telegram_client_name,
+          phone_number: participant.phone_number,
         }),
       }
     );
@@ -279,11 +258,19 @@ const AdminDashboard = () => {
       return;
     }
 
-    alert("Participant updated successfully");
+    alert("Participant updated successfully!");
 
-    // Refresh list and re-select current participant
-    await fetchParticipants(participant.telegram_id);
-  };
+    // Ensure the table list matches the successful update
+    setParticipantsList((prev) =>
+      prev.map((p) =>
+        p.telegram_user_id === participant.telegram_user_id ? { ...participant } : p
+      )
+    );
+  } catch (error) {
+    console.error("Update error:", error);
+    alert("An error occurred.");
+  }
+};
 
   const handleDeleteParticipant = async () => {
     if (!participant) return;
@@ -301,7 +288,7 @@ const AdminDashboard = () => {
 
     const res = await fetch(
       `http://localhost:3000/api/telegram/participant/${encodeURIComponent(
-        participant.telegram_id
+        participant.telegram_user_id
       )}`,
       {
         method: "DELETE",
@@ -324,6 +311,101 @@ const AdminDashboard = () => {
     // Refresh list
     await fetchParticipants();
   };
+
+  const handleInlineUpdate = async (p: Participant, field: keyof Participant) => {
+  const newValue = editingCell?.value.trim();
+  
+  if (newValue === undefined || newValue === p[field as keyof Participant]) {
+    setEditingCell(null);
+    return;
+  }
+
+  try {
+    const token = localStorage.getItem("token");
+    const res = await fetch(
+      `http://localhost:3000/api/telegram/participant/${encodeURIComponent(p.telegram_user_id)}`,
+      {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ [field]: newValue }),
+      }
+    );
+
+    if (!res.ok) throw new Error("Update failed");
+
+    // 1. Update the main list so the table looks correct
+    setParticipantsList((prev) =>
+      prev.map((item) =>
+        item.telegram_user_id === p.telegram_user_id
+          ? { ...item, [field]: newValue }
+          : item
+      )
+    );
+
+    // 2. CRITICAL: Update the selected participant state 
+    // This makes the "Update" button at the bottom aware of the change
+    if (participant?.telegram_user_id === p.telegram_user_id) {
+      setParticipant((prev) => (prev ? { ...prev, [field]: newValue } : null));
+    }
+
+    setEditingCell(null);
+  } catch (error) {
+    console.error(error);
+    alert("Update failed");
+  }
+};
+
+  const renderEditableCell = (
+  p: Participant,
+  field: keyof Participant,
+  value: any
+) => {
+  // Use telegram_user_id instead of id to ensure uniqueness
+  const isEditing =
+    editingCell !== null &&
+    editingCell.id === String(p.telegram_user_id) && 
+    editingCell.field === field;
+
+  if (isEditing) {
+    return (
+      <TextField
+        size="small"
+        value={editingCell.value}
+        autoFocus
+        onClick={(e) => e.stopPropagation()}
+        onChange={(e) =>
+          setEditingCell((prev) =>
+            prev ? { ...prev, value: e.target.value } : prev
+          )
+        }
+        onBlur={() => handleInlineUpdate(p, field)}
+        onKeyDown={(e) => {
+          if (e.key === "Enter") handleInlineUpdate(p, field);
+          if (e.key === "Escape") setEditingCell(null);
+        }}
+      />
+    );
+  }
+
+  return (
+    <span
+      style={{ display: "block", minHeight: "20px", cursor: "pointer" }}
+      onClick={(e) => {
+        e.stopPropagation();
+        setEditingCell({
+          id: String(p.telegram_user_id), // Track by Telegram User ID
+          field,
+          value: value || "",
+        });
+      }}
+    >
+      {value || "N/A"}
+    </span>
+  );
+};
 
   return (
     <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
@@ -425,18 +507,18 @@ const AdminDashboard = () => {
       {/* SIDE PANEL */}
       {selectedRA && (
         <Paper
-          elevation={4}
-          sx={{
-            position: "fixed",
-            right: 20,
-            top: 120,
-            width: 450,
-            p: 3,
-            borderRadius: 2,
-            maxHeight: "calc(100vh - 140px)",
-            overflowY: "auto",
-          }}
-        >
+  elevation={4}
+  sx={{
+    position: "fixed",
+    right: 20,
+    top: 120,
+    width: 600,   // 👈 increased from 450 → 800
+    p: 3,
+    borderRadius: 2,
+    maxHeight: "calc(100vh - 140px)",
+    overflowY: "auto",
+  }}
+>
           <Button
             size="small"
             onClick={closePanel}
@@ -507,136 +589,141 @@ const AdminDashboard = () => {
             </>
           ) : (
             <>
-              <Typography fontWeight={600}>View Participant</Typography>
-              <Box sx={{ mt: 2 }}>
-                <Typography fontWeight={600} sx={{ mb: 1 }}>
-                  Participants
-                </Typography>
+            <Box
+  sx={{
+    width: "95%",   // 👈 takes almost full screen
+    mx: "auto",
+  }}
+>
+  <Typography fontWeight={600}>View Participant</Typography>
 
-                <Typography color="text.secondary" sx={{ mb: 1, mt: 1 }}>
-                  Search User
-                </Typography>
-                <TextField
-                  fullWidth
-                  size="small"
-                  placeholder="Search by Phone or Username"
-                  value={participantSearchQuery}
-                  onChange={(e) => setParticipantSearchQuery(e.target.value)}
-                  sx={{ mb: 1 }}
-                  InputProps={{
-                    startAdornment: (
-                      <InputAdornment position="start">
-                        <SearchIcon fontSize="small" />
-                      </InputAdornment>
-                    ),
-                  }}
-                />
+  {/* Participants Section */}
+  <Box sx={{ mt: 2 }}>
+    <Typography fontWeight={600} sx={{ mb: 1 }}>
+      Participants
+    </Typography>
 
-                {participantLoading ? (
-                  <Typography>Loading...</Typography>
-                ) : (
-                  <Table size="small">
-                    <TableHead>
-                      <TableRow>
-                        <TableCell>Phone</TableCell>
-                        <TableCell>Username</TableCell>
-                      </TableRow>
-                    </TableHead>
-                    <TableBody>
-                      {participantsList
-                        .filter((p) => {
-                          const q = participantSearchQuery.trim().toLowerCase();
-                          if (!q) return true;
-                          return (
-                            String(p.telegram_id || "")
-                              .toLowerCase()
-                              .includes(q) ||
-                            String(p.telegram_client_name || "")
-                              .toLowerCase()
-                              .includes(q)
-                          );
-                        })
-                        .length === 0 ? (
-                        <TableRow>
-                          <TableCell colSpan={2} align="center">
-                            No participants found
-                          </TableCell>
-                        </TableRow>
-                      ) : (
-                        participantsList
-                          .filter((p) => {
-                            const q = participantSearchQuery
-                              .trim()
-                              .toLowerCase();
-                            if (!q) return true;
-                            return (
-                              String(p.telegram_id || "")
-                                .toLowerCase()
-                                .includes(q) ||
-                              String(p.telegram_client_name || "")
-                                .toLowerCase()
-                                .includes(q)
-                            );
-                          })
-                          .map((p) => (
-                            <TableRow
-                              key={p.telegram_id}
-                              hover
-                              selected={participant?.telegram_id === p.telegram_id}
-                              onClick={() => {
-                                setParticipant(p);
-                                setParticipantUsername(
-                                  p.telegram_client_name || ""
-                                );
-                              }}
-                              sx={{ cursor: "pointer" }}
-                            >
-                              <TableCell>{p.telegram_id}</TableCell>
-                              <TableCell>{p.telegram_client_name}</TableCell>
-                            </TableRow>
-                          ))
-                      )}
-                    </TableBody>
-                  </Table>
-                )}
-              </Box>
+    <Typography color="text.secondary" sx={{ mb: 1, mt: 1 }}>
+      Search User
+    </Typography>
 
-              {/* Create */}
-              <Box sx={{ mt: 2 }}>
-                <Typography fontWeight={600} sx={{ mb: 1 }}>
-                  Add New Participant
-                </Typography>
-                <TelegramSearch
-                  onSaved={(telegramUserId) => {
-                    if (telegramUserId) {
-                      fetchParticipants(String(telegramUserId));
-                    }
-                  }}
-                />
-              </Box>
+    <TextField
+      fullWidth
+      size="small"
+      placeholder="Search by Phone or Username"
+      value={participantSearchQuery}
+      onChange={(e) => setParticipantSearchQuery(e.target.value)}
+      sx={{ mb: 2 }}
+      InputProps={{
+        startAdornment: (
+          <InputAdornment position="start">
+            <SearchIcon fontSize="small" />
+          </InputAdornment>
+        ),
+      }}
+    />
 
-              {/* Update / Delete */}
-              <Box sx={{ display: "flex", gap: 1, mt: 2 }}>
-                <Button
-                  variant="contained"
-                  color="primary"
-                  fullWidth
-                  disabled={!participant || participantLoading}
-                  onClick={handleUpdateParticipant}
-                >
-                  Update
-                </Button>
+    {participantLoading ? (
+  <Typography>Loading...</Typography>
+) : (
+  <TableContainer component={Paper} sx={{ overflowX: "auto" }}>
+    <Table size="small" sx={{ minWidth: 400 }}>
+      <TableHead>
+        <TableRow>
+          <TableCell>Phone</TableCell>
+          <TableCell>Username</TableCell>
+          <TableCell>Userid</TableCell>
+        </TableRow>
+      </TableHead>
 
-                <Button
-                  variant="contained"
-                  color="error"
-                  fullWidth
-                  disabled={!participant || participantLoading}
-                  onClick={handleDeleteParticipant}
-                >
-                  Delete
-                </Button>
-              </Box>
+      <TableBody>
+        {participantsList
+          .filter((p) => {
+            const q = participantSearchQuery.trim().toLowerCase();
+            if (!q) return true;
+            return (
+              String(p.phone_number || "").toLowerCase().includes(q) ||
+              String(p.telegram_client_name || "").toLowerCase().includes(q) ||
+              String(p.telegram_user_id || "").toLowerCase().includes(q)
+            );
+          })
+          .map((p) => {
+    // Check editing based on telegram_user_id
+    const isRowEditing = editingCell?.id === String(p.telegram_user_id);
+
+    return (
+      <TableRow
+        key={p.telegram_user_id} // Use the unique Telegram ID as the key
+        selected={participant?.telegram_user_id === p.telegram_user_id}
+        onClick={() => {
+          if (isRowEditing) return;
+          setParticipant(p);
+          setParticipantUsername(p.telegram_client_name || "");
+        }}
+        sx={{ cursor: "pointer" }}
+      >
+                <TableCell>
+                  {renderEditableCell(p, "phone_number", p.phone_number)}
+                </TableCell>
+
+                <TableCell>
+                  {renderEditableCell(
+                    p,
+                    "telegram_client_name",
+                    p.telegram_client_name
+                  )}
+                </TableCell>
+
+                <TableCell>
+                  {p.telegram_user_id}
+                </TableCell>
+              </TableRow>
+            );
+          })}
+      </TableBody>
+    </Table>
+  </TableContainer>
+)}
+  </Box>
+
+  {/* Add New Participant */}
+  <Box sx={{ mt: 3 }}>
+    <Typography fontWeight={600} sx={{ mb: 1 }}>
+      Add New Participant
+    </Typography>
+
+    <TelegramSearch
+      onSaved={(telegramUserId) => {
+        if (telegramUserId) {
+          fetchParticipants(String(telegramUserId));
+        }
+      }}
+    />
+  </Box>
+
+  {/* Update / Delete Buttons */}
+  <Box sx={{ display: "flex", gap: 2, mt: 3 }}>
+    <Button
+      variant="contained"
+      color="primary"
+      fullWidth
+      disabled={!participant || participantLoading}
+      onClick={handleUpdateParticipant}
+    >
+      Update
+    </Button>
+
+    <Button
+      variant="contained"
+      color="error"
+      fullWidth
+      disabled={!participant || participantLoading}
+      onClick={handleDeleteParticipant}
+    >
+      Delete
+    </Button>
+  </Box>
+</Box>
             </>
           )}
         </Paper>

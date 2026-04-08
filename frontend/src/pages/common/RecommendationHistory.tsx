@@ -64,6 +64,7 @@ interface ApiHistoryRecord {
 interface RecommendationHistoryProps {
   statusFilter?: string;
   enableAddNotification?: boolean;
+  searchQuery?: string;
 }
 
 const CLIENT_HISTORY_STORAGE_KEY = "clientRecommendationHistory";
@@ -73,6 +74,7 @@ const CLIENT_HISTORY_PENDING_NOTIFICATION_KEY = "clientHistoryPendingNotificatio
 export default function RecommendationHistory({
   statusFilter = "All",
   enableAddNotification = false,
+  searchQuery = "",
 }: RecommendationHistoryProps) {
   const mapApiRowToHistory = (row: ApiHistoryRecord): HistoryRecord => ({
     dateTime: row.date_time || "",
@@ -214,6 +216,17 @@ export default function RecommendationHistory({
   const filteredData = useMemo(() => {
     let result = [...data];
 
+    // --- GLOBAL SEARCH LOGIC ---
+    if (searchQuery.trim() !== "") {
+      const lowerQuery = searchQuery.toLowerCase();
+      result = result.filter((item) => {
+        // This converts every value in the row to a string and checks for a match
+        return Object.values(item).some((value) => 
+          String(value).toLowerCase().includes(lowerQuery)
+        );
+      });
+    }
+
     // --- CONDITION FOR DASHBOARD ---
     if (statusFilter !== "All") {
       const normalizedStatusFilter = statusFilter.toLowerCase();
@@ -258,7 +271,7 @@ export default function RecommendationHistory({
     }
 
     return result;
-  }, [data, dateFilter, typesOfCall, categoryFilter, actionFilter, outcomeFilter, statusFilter]);
+  }, [data, searchQuery, statusFilter, typesOfCall, categoryFilter, actionFilter, outcomeFilter, dateFilter]);
 
   const totalPages = Math.ceil(filteredData.length / rowsPerPage);
 
@@ -357,122 +370,95 @@ export default function RecommendationHistory({
 
           {/* Condition: Only show Filters on Performance page */}
           {statusFilter === "All" && (
-            <Paper
-              elevation={0}
-              sx={{
-                display: "flex",
-                alignItems: "center",
-                border: "1px solid #E9E9EE",
-                borderRadius: "0.5rem",
-                overflow: "hidden",
-              }}
-            >
-              <Box sx={{ p: 1, borderRight: "1px solid #E9E9EE", display: "flex", alignItems: "center", backgroundColor: "#F8F9FA" }}>
-                <FilterAltOutlinedIcon sx={{ fontSize: "1.1rem", color: "#666" }} />
-              </Box>
+            <Box sx={{ p: 2, backgroundColor: "#fff" }}>
+  <Box
+    sx={{
+      display: "flex",
+      flexDirection: { xs: "column", md: "row" }, // Stack on mobile, single line on desktop
+      border: "1px solid #E9E9EE",
+      borderRadius: "0.5rem",
+      overflow: "hidden",
+      width: "fit-content",
+      maxWidth: "100%"
+    }}
+  >
+    {/* Filter Icon & Label */}
+    <Box sx={{ 
+      display: "flex", 
+      alignItems: "center", 
+      px: 2, 
+      py: 1, 
+      backgroundColor: "#F8F9FA",
+      borderRight: "1px solid #E9E9EE",
+      borderBottom: { xs: "1px solid #E9E9EE", md: "none" }
+    }}>
+      <FilterAltOutlinedIcon sx={{ fontSize: "1.1rem", color: "#666", mr: 1 }} />
+      <Typography fontSize="0.75rem" color="#666" fontWeight={600} sx={{ whiteSpace: 'nowrap' }}>
+        Filter By
+      </Typography>
+    </Box>
 
-              <Box sx={{ px: 1.5, py: 0.5, borderRight: "1px solid #E9E9EE" }}>
-                <Typography fontSize="0.75rem" color="#666" fontWeight={500}>Filter By</Typography>
-              </Box>
+    {/* Dropdowns Container */}
+    <Box sx={{ 
+      display: "flex", 
+      flexWrap: { xs: "wrap", md: "nowrap" }, // Wrap on mobile, NO wrap on desktop
+      flexGrow: 1 
+    }}>
+      {[
+        { value: dateFilter, setter: setDateFilter, label: "Date", options: ["Today", "Last 7 Days"] },
+        { value: typesOfCall, setter: settypesOfCall, label: "Type of Calls", options: ["cash", "futures", "options call", "options put"] },
+        { value: actionFilter, setter: setActionFilter, label: "Action", options: ["BUY", "SELL"] },
+        { value: outcomeFilter, setter: setOutcomeFilter, label: "Outcome", options: ["Profit", "Loss"] },
+        { value: categoryFilter, setter: setCategoryFilter, label: "Category", options: ["Intraday", "Short Term", "Long Term"] },
+      ].map((f, i) => (
+        <Box 
+          key={i} 
+          sx={{ 
+            borderRight: "1px solid #E9E9EE",
+            // On mobile: take half width to form a grid. On desktop: auto width.
+            flex: { xs: "1 1 50%", md: "0 0 auto" }, 
+            borderBottom: { xs: "1px solid #E9E9EE", md: "none" },
+          }}
+        >
+          <Select
+            value={f.value}
+            onChange={(e) => { f.setter(e.target.value); setPage(1); }}
+            displayEmpty
+            size="small"
+            sx={{
+                ...historySelectStyle,
+                width: "100%",
+                minWidth: { md: "130px" } // Ensures desktop looks consistent
+            }}
+            variant="standard"
+            disableUnderline
+          >
+            <MenuItem value="All">{f.label}</MenuItem>
+            {f.options.map(opt => <MenuItem key={opt} value={opt}>{opt}</MenuItem>)}
+          </Select>
+        </Box>
+      ))}
+    </Box>
 
-              <Box sx={{ borderRight: "1px solid #E9E9EE" }}>
-                <Select
-                  value={dateFilter}
-                  onChange={(e) => setDateFilter(e.target.value)}
-                  displayEmpty
-                  size="small"
-                  sx={historySelectStyle}
-                  variant="standard"
-                  disableUnderline
-                >
-                  <MenuItem value="All">Date</MenuItem>
-                  <MenuItem value="Today">Today</MenuItem>
-                  <MenuItem value="Last 7 Days">Last 7 Days</MenuItem>
-                </Select>
-              </Box>
-
-              <Box sx={{ borderRight: "1px solid #E9E9EE" }}>
-                <Select
-                  value={typesOfCall}
-                  onChange={(e) => settypesOfCall(e.target.value)}
-                  displayEmpty
-                  size="small"
-                  sx={historySelectStyle}
-                  variant="standard"
-                  disableUnderline
-                >
-                  <MenuItem value="All">Type of Calls</MenuItem>
-                  <MenuItem value="cash">Cash</MenuItem>
-                  <MenuItem value="futures">Futures</MenuItem>
-                  <MenuItem value="options call">Option Call</MenuItem>
-                  <MenuItem value="options put">Option Put</MenuItem>
-                </Select>
-              </Box>
-
-              <Box sx={{ borderRight: "1px solid #E9E9EE" }}>
-                <Select
-                  value={actionFilter}
-                  onChange={(e) => setActionFilter(e.target.value)}
-                  displayEmpty
-                  size="small"
-                  sx={historySelectStyle}
-                  variant="standard"
-                  disableUnderline
-                >
-                  <MenuItem value="All">Action</MenuItem>
-                  <MenuItem value="BUY">Buy</MenuItem>
-                  <MenuItem value="SELL">Sell</MenuItem>
-                </Select>
-              </Box>
-
-              <Box sx={{ borderRight: "1px solid #E9E9EE" }}>
-                <Select
-                  value={outcomeFilter}
-                  onChange={(e) => setOutcomeFilter(e.target.value)}
-                  displayEmpty
-                  size="small"
-                  sx={historySelectStyle}
-                  variant="standard"
-                  disableUnderline
-                >
-                  <MenuItem value="All">Outcome</MenuItem>
-                  <MenuItem value="Profit">Profit</MenuItem>
-                  <MenuItem value="Loss">Loss</MenuItem>
-                </Select>
-              </Box>
-
-              <Box sx={{ borderRight: "1px solid #E9E9EE" }}>
-                <Select
-                  value={categoryFilter}
-                  onChange={(e) => setCategoryFilter(e.target.value)}
-                  displayEmpty
-                  size="small"
-                  sx={historySelectStyle}
-                  variant="standard"
-                  disableUnderline
-                >
-                  <MenuItem value="All">Category</MenuItem>
-                  <MenuItem value="Intraday">Intraday</MenuItem>
-                  <MenuItem value="Short Term">Short Term</MenuItem>
-                  <MenuItem value="Long Term">Long Term</MenuItem>
-                </Select>
-              </Box>
-
-              <Button
-                startIcon={<RestartAltIcon sx={{ fontSize: "1rem" }} />}
-                onClick={handleReset}
-                sx={{
-                  textTransform: "none",
-                  color: "#ff4d4d",
-                  fontWeight: 600,
-                  fontSize: "0.75rem",
-                  px: 2,
-                  "&:hover": { backgroundColor: "rgba(255, 77, 77, 0.05)" },
-                }}
-              >
-                Reset Filter
-              </Button>
-            </Paper>
+    {/* Reset Button */}
+    <Button
+      startIcon={<RestartAltIcon sx={{ fontSize: "1rem" }} />}
+      onClick={handleReset}
+      sx={{
+        textTransform: "none",
+        color: "#ff4d4d",
+        fontWeight: 600,
+        fontSize: "0.75rem",
+        px: 3,
+        py: { xs: 1.5, md: 0 },
+        whiteSpace: "nowrap",
+        "&:hover": { backgroundColor: "rgba(255, 77, 77, 0.05)" }
+      }}
+    >
+      Reset Filter
+    </Button>
+  </Box>
+</Box>
           )}
         </Box>
 

@@ -9,8 +9,8 @@ import {
   approveRegistration,
   rejectRegistration,
   getRegistrationById,
-  updateRARegistration 
-} from "../controllers/registration.controller"; 
+  updateRARegistration
+} from "../controllers/registration.controller";
 
 const router = express.Router();
 
@@ -73,7 +73,12 @@ router.put(
     { name: "nism_certificate", maxCount: 1 },
     { name: "cancelled_cheque", maxCount: 1 },
   ]),
-  updateRARegistration 
+  updateRARegistration
 );
+
+router.use((req, res, next) => {
+  console.log("📍 REG ROUTER HIT:", req.method, req.url);
+  next();
+});
 
 export default router;

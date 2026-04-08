@@ -71,7 +71,9 @@ const LoginFormAdmin: React.FC = () => {
       setMessage(
         err.response?.data?.message ||
         "Server error. Please try again."
+
       );
+      console.log(err.response?.data);
     } finally {
       setLoading(false);
     }
