@@ -67,8 +67,10 @@ const AdminApproval = () => {
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
   const [brokerRows, setBrokerRows] = useState<AdminRow[]>([]);
-const [brokerSearch, setBrokerSearch] = useState("");
-const [selectedBroker, setSelectedBroker] = useState<AdminRow | null>(null);
+  const [brokerSearch, setBrokerSearch] = useState("");
+  const [selectedBroker, setSelectedBroker] = useState<AdminRow | null>(null);
+  const [brokerFilter, setBrokerFilter] = useState<AdminFilterValue>("All");
+  const [brokerPage, setBrokerPage] = useState(1);
 
   const navigate = useNavigate();
 
@@ -311,6 +313,44 @@ const handleApprove = async (id: string) => {
       console.error(error);
     }
   };
+  // RA RESET
+  useEffect(() => {
+    setSelectedRA(null);
+  }, [filter, searchQuery, page]);
+
+  // BROKER RESET
+  useEffect(() => {
+    setBrokerPage(1);
+    setSelectedBroker(null);
+  }, [brokerSearch, brokerFilter]);
+
+  // BROKER FILTER
+  const filteredBrokers = brokerRows.filter((b) => {
+
+  const matchesFilter =
+    brokerFilter === "All" ||
+    b.status.toLowerCase() === brokerFilter.toLowerCase();
+
+  const query = brokerSearch.toLowerCase();
+
+  const matchesSearch =
+    b.name.toLowerCase().includes(query) ||
+    b.phone.includes(query);
+
+  return matchesFilter && matchesSearch;
+});
+
+// BROKER PAGINATION
+const BROKER_ITEMS_PER_PAGE = 10;
+
+const brokerPageCount = Math.ceil(
+  filteredBrokers.length / BROKER_ITEMS_PER_PAGE
+);
+
+const paginatedBrokers = filteredBrokers.slice(
+  (brokerPage - 1) * BROKER_ITEMS_PER_PAGE,
+  brokerPage * BROKER_ITEMS_PER_PAGE
+);
 
   /* ================= UI ================= */
 
@@ -573,6 +613,10 @@ const handleApprove = async (id: string) => {
     }}
   />
 
+  <Box sx={{ overflowX: "auto" }}>
+  <AdminFilter value={brokerFilter} onChange={setBrokerFilter} />
+</Box>
+
   <TableContainer component={Paper} variant="outlined">
     <Table size="small">
       <TableHead sx={{ backgroundColor: "#f0f7ff" }}>
@@ -584,34 +628,39 @@ const handleApprove = async (id: string) => {
         </TableRow>
       </TableHead>
       <TableBody>
-        {brokerRows
-          .filter(b => 
-            b.name.toLowerCase().includes(brokerSearch.toLowerCase()) || 
-            b.phone.includes(brokerSearch)
-          )
-          .map((broker) => (
-            <TableRow key={broker.id}>
-              <TableCell>{broker.name}</TableCell>
-              <TableCell>{broker.phone}</TableCell>
-              <TableCell>
-                <Chip
-                  size="small"
-                  label={broker.status}
-                  color={statusColor(broker.status) as any}
-                />
-              </TableCell>
-              <TableCell align="right">
-                <Button
-                  size="small"
-                  variant="outlined"
-                  onClick={() => setSelectedBroker(broker)}
-                >
-                  View Details
-                </Button>
-              </TableCell>
-            </TableRow>
-          ))}
-      </TableBody>
+  {paginatedBrokers.map((broker) => (
+    <TableRow key={broker.id}>
+      <TableCell>{broker.name}</TableCell>
+      <TableCell>{broker.phone}</TableCell>
+
+      <TableCell>
+        <Chip
+          size="small"
+          label={broker.status}
+          color={statusColor(broker.status) as any}
+        />
+      </TableCell>
+
+      <TableCell align="right">
+        <Button
+          size="small"
+          variant="outlined"
+          onClick={() => setSelectedBroker(broker)}
+        >
+          View Details
+        </Button>
+      </TableCell>
+    </TableRow>
+  ))}
+
+  {filteredBrokers.length === 0 && (
+    <TableRow>
+      <TableCell colSpan={4} align="center">
+        No brokers found
+      </TableCell>
+    </TableRow>
+  )}
+</TableBody>
     </Table>
   </TableContainer>
 </Box>
@@ -681,6 +730,21 @@ const handleApprove = async (id: string) => {
       <Button variant="contained" color="error" fullWidth>Reject</Button>
     </Box>
   </Paper>
+)}
+
+{brokerPageCount > 1 && (
+  <Pagination
+    sx={{ alignSelf: "center", mt: 2 }}
+    count={brokerPageCount}
+    page={brokerPage}
+    onChange={(_, value) => setBrokerPage(value)}
+    renderItem={(item) => (
+      <PaginationItem
+        slots={{ previous: ArrowBackIcon, next: ArrowForwardIcon }}
+        {...item}
+      />
+    )}
+  />
 )}
 
     </Box>
