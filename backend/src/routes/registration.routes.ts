@@ -11,6 +11,7 @@ import {
   getRegistrationById,
    getBrokerById,
   updateRARegistration,
+  getAllRegistrationsActiveUsers,
    updateBroker 
 } from "../controllers/registration.controller";
 
