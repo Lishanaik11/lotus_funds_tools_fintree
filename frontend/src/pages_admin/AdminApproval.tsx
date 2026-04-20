@@ -135,7 +135,7 @@ const AdminApproval = () => {
         const token = localStorage.getItem("token");
 
         const response = await fetch(
-          `${import.meta.env.VITE_API_URL}/api/registration/all-registrations`,
+          `${import.meta.env.VITE_API_URL}/api/broker/all-brokers`, // ✅ correct broker endpoint
           {
             headers: {
               Authorization: `Bearer ${token}`,
@@ -158,22 +158,21 @@ const AdminApproval = () => {
 
         const formatted = data.map((item: any) => ({
           id: item.id,
-          type: "BROKER",
-          name: `${item.first_name || ""} ${item.surname || ""}`,
+          type: "BROKER", // ✅ correct type
+          name: item.legal_name || "N/A",
           phone: item.mobile || "",
-          profile: item.profile_image,
-          pan: item.pan_card,
-          address: item.address_proof_document,
           sebi: item.sebi_certificate,
-          sebi_receipt: item.sebi_receipt,
-          nism: item.nism_certificate,
-          cheque: item.cancelled_cheque,
+          exchange_certificates: item.exchange_certificates,
+          appointment_letter: item.appointment_letter,
+          networth_certificate: item.networth_certificate,
+          financial_statements: item.financial_statements,
+          ca_certificate: item.ca_certificate,
           status: item.status || "Pending",
           rejectionReason: item.rejection_reason || "",
           "age/time": "Just now",
         }));
 
-        setRows(formatted);
+        setBrokerRows(formatted); // ✅ correct state setter
       } catch (error) {
         console.error("Failed to load broker data:", error);
       }
@@ -325,9 +324,6 @@ const AdminApproval = () => {
       alert("Server error while rejecting ❌");
     }
   };
-
-
-
 
 
   /* ================= Edit ================= */
