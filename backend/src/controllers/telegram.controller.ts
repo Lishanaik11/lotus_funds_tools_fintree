@@ -1,6 +1,11 @@
 import { Request, Response } from "express";
-import { client } from "../telegramClient";
+//import { client } from "../telegramClient";
 import { pool } from "../db";
+import {AuthRequest} from "../middlewares/auth.middleware";
+import { createClient } from "../utils/telegramClientFactory";
+import { otpStore } from "../utils/telegramStore";
+import { Api } from "telegram";
+
 /**
  * Utility: sleep (for flood wait handling)
  */
@@ -11,27 +16,27 @@ function sleep(ms: number) {
 /**
  * Safe message sender (handles Telegram rate limits)
  */
-async function safeSendMessage(userId: any, message: string) {
-  try {
-    await client.sendMessage(userId, { message });
-    return { success: true };
-  } catch (err: any) {
-    console.error("Telegram Error:", err);
+// async function safeSendMessage(userId: any, message: string) {
+//   try {
+//     await client.sendMessage(userId, { message });
+//     return { success: true };
+//   } catch (err: any) {
+//     console.error("Telegram Error:", err);
 
-    if (err.errorMessage?.includes("FLOOD_WAIT")) {
-      const seconds = parseInt(err.errorMessage.split("_").pop());
-      console.log(`⏳ Flood wait for ${seconds} seconds`);
+//     if (err.errorMessage?.includes("FLOOD_WAIT")) {
+//       const seconds = parseInt(err.errorMessage.split("_").pop());
+//       console.log(`⏳ Flood wait for ${seconds} seconds`);
 
-      await sleep(seconds * 1000);
+//       await sleep(seconds * 1000);
 
-      // retry once
-      await client.sendMessage(userId, { message });
-      return { success: true, retried: true };
-    }
+//       // retry once
+//       await client.sendMessage(userId, { message });
+//       return { success: true, retried: true };
+//     }
 
-    return { success: false, error: err.message };
-  }
-}
+//     return { success: false, error: err.message };
+//   }
+// }
 
 export const getAllUsers = async (req: Request, res: Response) => {
   try {
@@ -172,77 +177,162 @@ export const deleteParticipant = async (req: Request, res: Response) => {
     res.status(500).json({ error: error.message });
   }
 };
-
 export const getClientsByRA = async (req: Request, res: Response) => {
-  const { id } = req.params;
-
-  console.log("👉 RA ID RECEIVED:", id);
-
-  const result = await pool.query(
-    "SELECT * FROM telegram_users WHERE user_id = $1",
-    [id]
-  );
-
-  console.log("👉 DB RESULT:", result.rows);
-
-  res.json(result.rows);
-};
-
-export const sendMessageToRAClients = async (req: Request, res: Response) => {
   try {
-    const raId = (req as any).user?.id; // ✅ from JWT
-    const { message } = req.body;
-
-    if (!raId || typeof message !== "string" || message.trim() === "") {
-      return res.status(400).json({
-        success: false,
-        message: "Valid message required",
-      });
-    }
-
-    console.log("📡 Sending to RA:", raId);
+    const { id } = req.params;
 
     const result = await pool.query(
-      "SELECT telegram_user_id FROM telegram_users WHERE user_id = $1",
+      "SELECT * FROM telegram_users WHERE user_id = $1",
+      [id]
+    );
+
+    res.json(result.rows);
+
+  } catch (error: any) {
+    console.error(error);
+    res.status(500).json({ message: error.message });
+  }
+};
+
+export const sendMessageToRAClients = async (req: AuthRequest, res: Response) => {
+  try {
+    const raId = req.user!.id;
+    const { message } = req.body;
+
+    // get session
+    const result = await pool.query(
+      `SELECT telegram_session FROM users WHERE id = $1`,
       [raId]
     );
 
-    const users = result.rows;
+    const sessionString = result.rows[0]?.telegram_session;
 
-    console.log("👥 Clients count:", users.length);
-
-    if (users.length === 0) {
-      return res.status(404).json({
-        success: false,
-        message: "No clients found for this RA",
+    if (!sessionString) {
+      return res.status(400).json({
+        message: "Telegram not connected",
       });
     }
 
-    const results: any[] = [];
+    const client = await createClient(sessionString);
 
-    for (const u of users) {
-      const sendResult = await safeSendMessage(u.telegram_user_id, message);
+    const users = await pool.query(
+      `SELECT telegram_user_id FROM telegram_users WHERE user_id = $1`,
+      [raId]
+    );
 
-      results.push({
-        userId: u.telegram_user_id,
-        ...sendResult,
-      });
+    for (const u of users.rows) {
+  try {
+    const entity = await client.getEntity(u.telegram_user_id);
 
-      await sleep(2000);
+    await client.sendMessage(entity, {
+      message,
+    });
+
+    await new Promise(res => setTimeout(res, 2000));
+
+  } catch (err: any) {
+    console.log("❌ Failed for user:", u.telegram_user_id, err.message);
+  }
+}
+
+    return res.json({ success: true });
+
+  } catch (err: any) {
+    console.error("SEND MESSAGE ERROR:", err);
+    return res.status(500).json({ message: err.message });
+  }
+};
+
+import { setClient, getClient, deleteClient } from "../utils/telegramClientStore";
+
+export const sendOtp = async (req: AuthRequest, res: Response) => {
+  try {
+    const { phoneNumber } = req.body;
+
+    const client = await createClient();
+
+    const result: any = await client.sendCode(
+      {
+        apiId: Number(process.env.TELEGRAM_API_ID),
+        apiHash: process.env.TELEGRAM_API_HASH!,
+      },
+      phoneNumber
+    );
+
+    // ✅ STORE CLIENT INSTANCE
+    setClient(Number(req.user!.id), client);
+
+    otpStore.set(Number(req.user!.id), {
+  phoneCodeHash: result.phoneCodeHash,
+  phoneNumber,
+  expiresAt: Date.now() + 5 * 60 * 1000 // ✅ 5 minutes
+});
+
+    return res.json({ success: true });
+
+  } catch (err: any) {
+    console.error("SEND OTP ERROR:", err);
+    return res.status(500).json({ message: err.message });
+  }
+};
+
+export const verifyOtp = async (req: AuthRequest, res: Response) => {
+  try {
+    const { code } = req.body;
+
+    const data = otpStore.get(Number(req.user!.id));
+
+    if (!data) {
+      return res.status(400).json({ message: "OTP session expired" });
     }
 
-    return res.status(200).json({
-      success: true,
-      message: "Messages sent to RA clients only",
-      results,
-    });
+    const client = getClient(Number(req.user!.id));
 
-  } catch (error: any) {
-    console.error("RA Message Error:", error);
+    if (!client) {
+      return res.status(400).json({ message: "Session expired" });
+    }
 
-    return res.status(500).json({
-      success: false,
-      message: error.message,
-    });
+    const { Api } = await import("telegram");
+
+    await client.invoke(
+      new Api.auth.SignIn({
+        phoneNumber: data.phoneNumber,
+        phoneCode: code,
+        phoneCodeHash: data.phoneCodeHash,
+      })
+    );
+
+    const sessionString = client.session.save();
+
+    await pool.query(
+      `UPDATE users SET telegram_session = $1 WHERE id = $2`,
+      [sessionString, req.user!.id]
+    );
+
+    deleteClient(Number(req.user!.id));
+    otpStore.delete(Number(req.user!.id));
+
+    return res.json({ success: true });
+
+  } catch (err: any) {
+    console.error("VERIFY OTP ERROR:", err);
+    return res.status(500).json({ message: err.message });
+  }
+};
+
+// GET /api/telegram/status
+export const getTelegramStatus = async (req: AuthRequest, res: Response) => {
+  try {
+    const result = await pool.query(
+      `SELECT telegram_session FROM users WHERE id = $1`,
+      [req.user!.id]
+    );
+
+    const isConnected = !!result.rows[0]?.telegram_session;
+
+    return res.json({ connected: isConnected });
+
+  } catch (err) {
+    return res.status(500).json({ message: "Error" });
   }
 };

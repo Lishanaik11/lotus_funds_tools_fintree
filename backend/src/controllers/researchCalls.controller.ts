@@ -1,5 +1,5 @@
 
-import { client } from "../telegramClient";
+//import { client } from "../telegramClient";
 import { Response } from "express";
 import { pool } from "../db";
 import { AuthRequest } from "../middlewares/auth.middleware";
