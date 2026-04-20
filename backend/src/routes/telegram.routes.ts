@@ -23,3 +23,4 @@ router.post("/verify-otp", authenticate, verifyOtp);
 router.get("/ra/:id", authenticate, getClientsByRA);
 router.get("/telegram/status", authenticate, getTelegramStatus);
 export default router;
+

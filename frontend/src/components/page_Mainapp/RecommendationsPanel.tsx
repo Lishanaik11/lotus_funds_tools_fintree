@@ -10,8 +10,8 @@ import {
     TableHead,
     TableRow,
     Button,
-    CircularProgress,
 } from "@mui/material";
+import LoadingPage from "../../common/LoadingPage";
 
 type Props = {
     recommendations: any[];
@@ -76,7 +76,12 @@ const RecommendationsPanel = React.memo(
 
                     {loading ? (
                         <Box sx={{ display: "flex", justifyContent: "center", py: 5 }}>
-                            <CircularProgress size={24} />
+                            <LoadingPage
+                                title="Loading"
+                                subtitle="Fetching recommendations..."
+                                fullScreen={false}
+                                size={36}
+                            />
                         </Box>
                     ) : (
                         <TableContainer sx={{ maxHeight: 400 }}>

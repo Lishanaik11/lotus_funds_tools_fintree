@@ -15,13 +15,28 @@ export const TelegramSearch = ({ raId, onSaved }: TelegramSearchProps) => {
 
   const handleSave = async () => {
     try {
+      const cleanUserId = (raId || "").trim();
+      const cleanTelegramId = telegramId.trim();
+      const cleanUsername = username.trim();
+      const cleanPhone = phoneNumber.trim();
+
+      if (!cleanUserId) {
+        alert("❌ Error: RA user id is missing.");
+        return;
+      }
+
+      if (!/^\d+$/.test(cleanTelegramId)) {
+        alert("❌ Error: Telegram ID must contain digits only.");
+        return;
+      }
+
       await axios.post(
   `${import.meta.env.VITE_API_URL}/api/telegram/save-user`,
   {
-    telegram_user_id: telegramId,
-    telegram_client_name: username,
-    phone_number: phoneNumber,
-    user_id: raId   // 👈 ADD THIS (VERY IMPORTANT)
+    telegram_user_id: cleanTelegramId,
+    telegram_client_name: cleanUsername,
+    phone_number: cleanPhone,
+    user_id: cleanUserId
   },
         {
           headers: {
@@ -31,7 +46,7 @@ export const TelegramSearch = ({ raId, onSaved }: TelegramSearchProps) => {
       );
 
       alert("✅ Saved successfully");
-      onSaved?.(raId);
+      onSaved?.(cleanUserId);
       
       // Clear inputs after success
       setUsername("");

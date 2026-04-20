@@ -12,6 +12,7 @@ import {
   Snackbar,
   Alert,
 } from "@mui/material";
+import LoadingPage from "../common/LoadingPage";
 
 type Registration = {
   [key: string]: any;
@@ -147,7 +148,15 @@ const openFile = (file?: string) => {
   });
 };
 
-if (!data) return <div>Loading...</div>;
+if (!data) {
+  return (
+    <LoadingPage
+      title="Loading"
+      subtitle="Fetching registration details..."
+      fullScreen
+    />
+  );
+}
 
 const basicFieldsRA = [
   "salutation",
