@@ -12,6 +12,7 @@ import {
   Snackbar,
   Alert,
 } from "@mui/material";
+import LoadingPage from "../common/LoadingPage";
 
 type Registration = {
   [key: string]: any;

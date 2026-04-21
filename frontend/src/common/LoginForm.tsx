@@ -21,6 +21,7 @@ import RestartAltIcon from "@mui/icons-material/RestartAlt";
 
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
+import LoadingPage from "./LoadingPage";
 
 const LoginForm: React.FC = () => {
 
@@ -59,12 +60,12 @@ const LoginForm: React.FC = () => {
 
     try {
       const res = await axios.post(
-  `${API_URL}/api/auth/login`,
-  {
-    loginId: formData.username,   // ✅ FIX HERE
-    password: formData.password,
-  }
-);
+        `${API_URL}/api/auth/login`,
+        {
+          loginId: formData.username,   // ✅ FIX HERE
+          password: formData.password,
+        }
+      );
       const { token, role } = res.data;
 
       localStorage.setItem("token", token);
@@ -74,16 +75,22 @@ const LoginForm: React.FC = () => {
       console.log("LOGIN:", res.data);
 
 
-if (role === "RESEARCH_ANALYST") {
-  navigate("/ra-dashboard");
-} else if (role === "BROKER") {
-  navigate("/broker-dashboard");
-} else if (role === "ADMIN") {
-  navigate("/admin-dashboard");
-} else {
-  setMessage("Invalid role");
-  localStorage.clear();
-}
+      if (role === "ADMIN" || role === "EMPLOYEE") {
+        setMessage("Please use company login page");
+        localStorage.clear();
+        return;
+      }
+
+      if (role === "RESEARCH_ANALYST") {
+        navigate("/ra-dashboard");
+      } else if (role === "BROKER") {
+        navigate("/broker-dashboard");
+      } else if (role === "CLIENT") {
+        navigate("/client-dashboard");
+      } else {
+        setMessage("Invalid role");
+        localStorage.clear();
+      }
     } catch (err: any) {
       setMessage(
         err.response?.data?.message ||
@@ -101,6 +108,16 @@ if (role === "RESEARCH_ANALYST") {
       backgroundColor: "#F8FBFF",
     },
   };
+
+  // Show shared full-page loader while login request is in progress.
+  if (loading) {
+    return (
+      <LoadingPage
+        title="Signing you in"
+        subtitle="Please wait while we verify your credentials."
+      />
+    );
+  }
 
   return (
     <Box
@@ -214,7 +231,7 @@ if (role === "RESEARCH_ANALYST") {
               cursor: "pointer",
             }}
           >
-           Register Now
+            Register Now
           </Link>
         </Typography>
 

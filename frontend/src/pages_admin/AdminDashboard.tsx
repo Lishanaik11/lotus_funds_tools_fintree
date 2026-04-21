@@ -23,6 +23,8 @@ import TelegramSearch from "./Admin common/TelegramSearch";
 
 type AdminRow = {
   id: string;
+  userId?: string;
+  raId?: string;
   name: string;
   phone: string;
 
@@ -103,7 +105,10 @@ const AdminDashboard = () => {
         }
 
         const formatted: AdminRow[] = data.map((item: any) => ({
-          id: item.id,
+          // Participant APIs are keyed by users.id (user_id), not ra_details.id.
+          id: String(item.user_id || item.id || ""),
+          userId: item.user_id ? String(item.user_id) : undefined,
+          raId: item.ra_id ? String(item.ra_id) : undefined,
           name:
             `${item.first_name || ""} ${item.surname || ""}`.trim() ||
             item.name ||
@@ -217,20 +222,26 @@ const AdminDashboard = () => {
       if (!raId) return;
 
       setParticipantLoading(true);
+      const token = localStorage.getItem("token");
 
       const url = `${import.meta.env.VITE_API_URL}/api/telegram/ra/${raId}`;
 
-      const response = await fetch(url);
+      const response = await fetch(url, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
 
       if (!response.ok) {
         throw new Error(`Server responded with ${response.status}`);
       }
 
       const data = await response.json();
-      setParticipantsList(data);
+      setParticipantsList(Array.isArray(data) ? data : []);
 
     } catch (error) {
       console.error("Fetch error:", error);
+      setParticipantsList([]);
     } finally {
       setParticipantLoading(false);
     }
@@ -239,8 +250,10 @@ const AdminDashboard = () => {
   const handleViewParticipant = (row: AdminRow) => {
     setPanelMode("participant");
     setSelectedRA(row);
+    setParticipant(null);
+    setParticipantUsername("");
 
-    fetchParticipants(row.id); // always RA id
+    fetchParticipants(row.userId || row.id);
   };
 
   const handleUpdateParticipant = async () => {
@@ -324,7 +337,7 @@ const AdminDashboard = () => {
     setPanelMode("ra");
 
     // Refresh list
-    await fetchParticipants();
+    await fetchParticipants(selectedRA?.id);
   };
 
   const handleInlineUpdate = async (p: Participant, field: keyof Participant) => {
@@ -706,10 +719,11 @@ const AdminDashboard = () => {
                     Add New Participant
                   </Typography>
                   <TelegramSearch
-                    raId={selectedRA?.id}   // 👈 ADD THIS
-                    onSaved={(raId) => {
-                      if (raId) {
-                        fetchParticipants(raId);
+                    raId={selectedRA?.userId || selectedRA?.id}
+                    onSaved={() => {
+                      const currentRaId = selectedRA?.userId || selectedRA?.id;
+                      if (currentRaId) {
+                        fetchParticipants(currentRaId);
                       }
                     }}
                   />

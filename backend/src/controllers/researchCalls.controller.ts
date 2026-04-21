@@ -1,5 +1,5 @@
 
-import { client } from "../telegramClient";
+//import { client } from "../telegramClient";
 import { Response } from "express";
 import { pool } from "../db";
 import { AuthRequest } from "../middlewares/auth.middleware";
@@ -539,5 +539,4 @@ export const publishDraftCall = async (req: AuthRequest, res: Response) => {
         return res.status(500).json({ message: "Server error" });
     }
 };
-
 
