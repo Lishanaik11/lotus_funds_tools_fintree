@@ -17,6 +17,7 @@ import {
   Snackbar,
   Alert,
 } from "@mui/material";
+import LoadingPage from "../../common/LoadingPage";
 
 import FilterAltOutlinedIcon from "@mui/icons-material/FilterAltOutlined";
 import RestartAltIcon from "@mui/icons-material/RestartAlt";
@@ -487,7 +488,12 @@ export default function RecommendationHistory({
               {loading ? (
                 <TableRow>
                   <TableCell colSpan={13} align="center" sx={{ py: 4 }}>
-                    Loading...
+                    <LoadingPage
+                      title="Loading"
+                      subtitle="Fetching recommendation history..."
+                      fullScreen={false}
+                      size={44}
+                    />
                   </TableCell>
                 </TableRow>
               ) : paginatedData.length === 0 ? (
