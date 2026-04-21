@@ -284,6 +284,7 @@ const AdminDashboard = () => {
         alert(data?.error || "Failed to update participant");
         return;
       }
+    
 
       alert("Participant updated successfully!");
 
