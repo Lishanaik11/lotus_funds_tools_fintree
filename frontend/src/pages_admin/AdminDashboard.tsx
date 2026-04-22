@@ -54,14 +54,14 @@ const AdminDashboard = () => {
   const [panelMode, setPanelMode] = useState<"ra" | "participant">("ra");
 
   type Participant = {
-    id: string;
-    telegram_user_id: number;
-    telegram_client_name: string;
-    phone_number?: string;
-  };
+  id: string; // ✅ DB ID (IMPORTANT)
+  telegram_user_id: number;
+  telegram_client_name: string;
+  phone_number?: string;
+};
 
-  const [participantsList, setParticipantsList] = useState<Participant[]>([]);
-  const [participant, setParticipant] = useState<Participant | null>(null);
+const [participantsList, setParticipantsList] = useState<Participant[]>([]);
+const [participant, setParticipant] = useState<Participant | null>(null);
   const [participantUsername, setParticipantUsername] = useState("");
   const [participantLoading, setParticipantLoading] = useState(false);
   const [participantSearchQuery, setParticipantSearchQuery] = useState("");
@@ -103,7 +103,7 @@ const AdminDashboard = () => {
         }
 
         const formatted: AdminRow[] = data.map((item: any) => ({
-          id: item.id,
+          id: item.id || item.user_id,
           name:
             `${item.first_name || ""} ${item.surname || ""}`.trim() ||
             item.name ||
@@ -122,8 +122,9 @@ const AdminDashboard = () => {
           status: item.user_status,
           raStatus: item.ra_status,
           rejectionReason: item.rejection_reason || "",
-          "age/time": "Just now",
+          "age/time": "Just now"
         }));
+        console.log("RA DATA:", data);
 
         console.log(formatted);
         setRows(formatted);
@@ -212,165 +213,167 @@ const AdminDashboard = () => {
     setParticipantUsername("");
   };
 
-  const fetchParticipants = async (raId?: string) => {
-    try {
-      if (!raId) return;
+  const fetchParticipants = async (raId: string) => {
+  if (!raId) {
+    console.error("❌ RA ID is missing");
+    return;
+  }
 
-      setParticipantLoading(true);
-
-      const url = `${import.meta.env.VITE_API_URL}/api/telegram/ra/${raId}`;
-
-      const response = await fetch(url);
-
-      if (!response.ok) {
-        throw new Error(`Server responded with ${response.status}`);
-      }
-
-      const data = await response.json();
-      setParticipantsList(data);
-
-    } catch (error) {
-      console.error("Fetch error:", error);
-    } finally {
-      setParticipantLoading(false);
-    }
-  };
-
-  const handleViewParticipant = (row: AdminRow) => {
-    setPanelMode("participant");
-    setSelectedRA(row);
-
-    fetchParticipants(row.id); // always RA id
-  };
-
-  const handleUpdateParticipant = async () => {
-    if (!participant) return;
+  try {
+    setParticipantLoading(true);
 
     const token = localStorage.getItem("token");
-    try {
-      const res = await fetch(
-        `${import.meta.env.VITE_API_URL}/api/telegram/participant/${encodeURIComponent(
-          participant.telegram_user_id
-        )}`,
-        {
-          method: "PUT",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify({
-            telegram_client_name: participant.telegram_client_name,
-            phone_number: participant.phone_number,
-          }),
-        }
-      );
-
-      const data = await res.json();
-
-      if (!res.ok) {
-        alert(data?.error || "Failed to update participant");
-        return;
-      }
-
-      alert("Participant updated successfully!");
-
-      // Ensure the table list matches the successful update
-      setParticipantsList((prev) =>
-        prev.map((p) =>
-          p.telegram_user_id === participant.telegram_user_id ? { ...participant } : p
-        )
-      );
-    } catch (error) {
-      console.error("Update error:", error);
-      alert("An error occurred.");
-    }
-  };
-
-  const handleDeleteParticipant = async () => {
-    if (!participant) return;
-
-    const ok = window.confirm(
-      "Are you sure you want to delete this Telegram participant?"
-    );
-    if (!ok) return;
-
-    const token = localStorage.getItem("token");
-    if (!token) {
-      alert("Authorization token missing. Please login again.");
-      return;
-    }
 
     const res = await fetch(
-      `${import.meta.env.VITE_API_URL}/api/telegram/participant/${encodeURIComponent(
-        participant.telegram_user_id
-      )}`,
+      `${import.meta.env.VITE_API_URL}/api/telegram/ra/${raId}`,
       {
-        method: "DELETE",
         headers: {
           Authorization: `Bearer ${token}`,
         },
       }
     );
 
+    const result = await res.json();
+
+    if (!res.ok) {
+      console.error(result);
+      setParticipantsList([]);
+      return;
+    }
+
+    setParticipantsList(result.data || []);
+
+  } catch (err) {
+    console.error(err);
+    setParticipantsList([]);
+  } finally {
+    setParticipantLoading(false);
+  }
+};
+
+  const handleViewParticipant = (row: AdminRow) => {
+    setPanelMode("participant");
+    setSelectedRA(row);
+    setParticipant(null);
+setParticipantUsername("");
+
+    fetchParticipants(row.id); // always RA id
+  };
+
+  const handleUpdateParticipant = async () => {
+  if (!participant?.id) return;
+
+  const token = localStorage.getItem("token");
+
+  const res = await fetch(
+    `${import.meta.env.VITE_API_URL}/api/telegram/participant/${encodeURIComponent(participant.id)}`, // ✅ FIX
+    {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({
+        telegram_client_name: participant.telegram_client_name,
+        phone_number: participant.phone_number,
+      }),
+    }
+  );
+
+  const data = await res.json();
+
+  if (!res.ok) {
+    alert(data?.message || "Update failed");
+    return;
+  }
+
+  alert("Updated successfully");
+
+  setParticipantsList((prev) =>
+    prev.map((p) => (p.id === participant.id ? data.data : p))
+  );
+};
+
+  const handleDeleteParticipant = async () => {
+  if (!participant?.id) {
+    alert("Invalid participant ID");
+    return;
+  }
+
+  const ok = window.confirm("Are you sure?");
+  if (!ok) return;
+
+  const token = localStorage.getItem("token");
+
+  const res = await fetch(
+    `${import.meta.env.VITE_API_URL}/api/telegram/participant/${encodeURIComponent(participant.id)}`, // ✅ FIX
+    {
+      method: "DELETE",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    }
+  );
+
+  const data = await res.json();
+
+  if (!res.ok) {
+    alert(data?.message || "Delete failed");
+    return;
+  }
+
+  alert("Deleted successfully");
+
+  setParticipant(null);
+
+  if (selectedRA) {
+    await fetchParticipants(selectedRA.id);
+  }
+};
+
+  const handleInlineUpdate = async (p: Participant, field: keyof Participant) => {
+  const newValue = editingCell?.value.trim();
+
+  if (!newValue || newValue === p[field]) {
+    setEditingCell(null);
+    return;
+  }
+
+  try {
+    const token = localStorage.getItem("token");
+
+    const res = await fetch(
+      `${import.meta.env.VITE_API_URL}/api/telegram/participant/${encodeURIComponent(p.id)}`, // ✅ FIX
+      {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ [field]: newValue }),
+      }
+    );
+
     const data = await res.json();
 
     if (!res.ok) {
-      alert(data?.error || "Failed to delete participant");
+      alert(data?.message || "Update failed");
       return;
     }
 
-    alert("Participant deleted successfully");
-    setPanelMode("ra");
+    setParticipantsList((prev) =>
+      prev.map((item) =>
+        item.id === p.id ? { ...item, [field]: newValue } : item
+      )
+    );
 
-    // Refresh list
-    await fetchParticipants();
-  };
+    setEditingCell(null);
 
-  const handleInlineUpdate = async (p: Participant, field: keyof Participant) => {
-    const newValue = editingCell?.value.trim();
-
-    if (newValue === undefined || newValue === p[field as keyof Participant]) {
-      setEditingCell(null);
-      return;
-    }
-
-    try {
-      const token = localStorage.getItem("token");
-      const res = await fetch(
-        `${import.meta.env.VITE_API_URL}/api/telegram/participant/${encodeURIComponent(p.telegram_user_id)}`,
-        {
-          method: "PUT",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify({ [field]: newValue }),
-        }
-      );
-
-      if (!res.ok) throw new Error("Update failed");
-
-      // 1. Update the main list so the table looks correct
-      setParticipantsList((prev) =>
-        prev.map((item) =>
-          item.telegram_user_id === p.telegram_user_id
-            ? { ...item, [field]: newValue }
-            : item
-        )
-      );
-
-      // 2. CRITICAL: Update the selected participant state 
-      // This makes the "Update" button at the bottom aware of the change
-      if (participant?.telegram_user_id === p.telegram_user_id) {
-        setParticipant((prev) => (prev ? { ...prev, [field]: newValue } : null));
-      }
-
-      setEditingCell(null);
-    } catch (error) {
-      console.error(error);
-      alert("Update failed");
-    }
-  };
+  } catch (error) {
+    console.error(error);
+    alert("Update failed");
+  }
+};
 
   const renderEditableCell = (
     p: Participant,
@@ -379,9 +382,9 @@ const AdminDashboard = () => {
   ) => {
     // Use telegram_user_id instead of id to ensure uniqueness
     const isEditing =
-      editingCell !== null &&
-      editingCell.id === String(p.telegram_user_id) &&
-      editingCell.field === field;
+  editingCell !== null &&
+  editingCell.id === String(p.id) && // ✅ FIX
+  editingCell.field === field;
 
     if (isEditing) {
       return (
@@ -410,10 +413,10 @@ const AdminDashboard = () => {
         onClick={(e) => {
           e.stopPropagation();
           setEditingCell({
-            id: String(p.telegram_user_id), // Track by Telegram User ID
-            field,
-            value: value || "",
-          });
+  id: String(p.id), // ✅ FIX
+  field,
+  value: value || "",
+});
         }}
       >
         {value || "N/A"}
@@ -666,15 +669,15 @@ const AdminDashboard = () => {
 
                               return (
                                 <TableRow
-                                  key={p.telegram_user_id} // Use the unique Telegram ID as the key
-                                  selected={participant?.telegram_user_id === p.telegram_user_id}
-                                  onClick={() => {
-                                    if (isRowEditing) return;
-                                    setParticipant(p);
-                                    setParticipantUsername(p.telegram_client_name || "");
-                                  }}
-                                  sx={{ cursor: "pointer" }}
-                                >
+  key={p.id} // ✅ correct
+  selected={participant?.id === p.id} // ✅ FIX
+  onClick={() => {
+    if (isRowEditing) return;
+    setParticipant(p);
+    setParticipantUsername(p.telegram_client_name || "");
+  }}
+  sx={{ cursor: "pointer" }}
+>
                                   <TableCell>
                                     {renderEditableCell(p, "phone_number", p.phone_number)}
                                   </TableCell>
@@ -701,18 +704,19 @@ const AdminDashboard = () => {
 
                 {/* Add New Participant */}
                 <Box sx={{ mt: 3 }}>
-                  <Typography fontWeight={600} sx={{ mb: 1 }}>
-                    Add New Participant
-                  </Typography>
-                  <TelegramSearch
-                    raId={selectedRA?.id}   // 👈 ADD THIS
-                    onSaved={(raId) => {
-                      if (raId) {
-                        fetchParticipants(raId);
-                      }
-                    }}
-                  />
-                </Box>
+  <Typography fontWeight={600} sx={{ mb: 1 }}>
+    Add New Participant
+  </Typography>
+
+  {selectedRA && (
+    <TelegramSearch
+      raId={selectedRA.id}   // ✅ correct
+      onSaved={() => {
+        fetchParticipants(selectedRA.id); // ✅ refresh correctly
+      }}
+    />
+  )}
+</Box>
 
                 {/* Update / Delete Buttons */}
                 <Box sx={{ display: "flex", gap: 2, mt: 3 }}>
