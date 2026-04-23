@@ -480,16 +480,17 @@ const openFile = (file?: string | string[]) => {
             <Button onClick={() => openFile(selectedRA.cheque)}>View Cheque</Button>
           </Box>
 
-          <TextField
-            fullWidth
-            multiline
-            rows={2}
-            placeholder="Rejection Reason"
-            value={rejectReason}
-            onChange={(e) => setRejectReason(e.target.value)}
-            sx={{ mt: 2 }}
-          />
-
+          {selectedRA.status.toLowerCase() !== "approved" && (
+  <TextField
+    fullWidth
+    multiline
+    rows={2}
+    placeholder="Rejection Reason"
+    value={rejectReason}
+    onChange={(e) => setRejectReason(e.target.value)}
+    sx={{ mt: 2 }}
+  />
+)}
           <Box sx={{ display: "flex", gap: 1, mt: 2 }}>
 
             <Button
@@ -505,18 +506,20 @@ const openFile = (file?: string | string[]) => {
               Approve
             </Button>
 
-            <Button
-              variant="contained"
-              color="error"
-              fullWidth
-              onClick={() => {
-                setSelectedId(selectedRA.id);
-                setConfirmType("reject");
-                setConfirmOpen(true);
-              }}
-            >
-              Reject
-            </Button>
+            {selectedRA.status.toLowerCase() !== "approved" && (
+  <Button
+    variant="contained"
+    color="error"
+    fullWidth
+    onClick={() => {
+      setSelectedId(selectedRA.id);
+      setConfirmType("reject");
+      setConfirmOpen(true);
+    }}
+  >
+    Reject
+  </Button>
+)}
             <Button
               variant="contained"
               color="warning"
@@ -722,15 +725,17 @@ const openFile = (file?: string | string[]) => {
               ))}
           </Box>
 
-          <TextField
-            fullWidth
-            multiline
-            rows={2}
-            placeholder="Rejection Reason"
-            value={rejectReason}
-            onChange={(e) => setRejectReason(e.target.value)}
-            sx={{ mt: 2 }}
-          />
+          {selectedBroker.status.toLowerCase() !== "approved" && (
+  <TextField
+    fullWidth
+    multiline
+    rows={2}
+    placeholder="Rejection Reason"
+    value={rejectReason}
+    onChange={(e) => setRejectReason(e.target.value)}
+    sx={{ mt: 2 }}
+  />
+)}
           <Box sx={{ display: "flex", gap: 1, mt: 2 }}>
             <Button
               variant="contained"
@@ -744,18 +749,20 @@ const openFile = (file?: string | string[]) => {
             >
               Approve
             </Button>
-            <Button
-              variant="contained"
-              color="error"
-              fullWidth
-              onClick={() => {
-                setSelectedId(selectedBroker.id);
-                setConfirmType("reject");
-                setConfirmOpen(true);
-              }}
-            >
-              Reject
-            </Button>
+           {selectedBroker.status.toLowerCase() !== "approved" && (
+  <Button
+    variant="contained"
+    color="error"
+    fullWidth
+    onClick={() => {
+      setSelectedId(selectedBroker.id);
+      setConfirmType("reject");
+      setConfirmOpen(true);
+    }}
+  >
+    Reject
+  </Button>
+)}
 
             <Button
               variant="contained"

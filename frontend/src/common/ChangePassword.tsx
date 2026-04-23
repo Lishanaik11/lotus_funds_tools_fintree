@@ -9,6 +9,8 @@ import {
     Alert,
 } from "@mui/material";
 import axios from "axios";
+import { InputAdornment, IconButton } from "@mui/material";
+import { Visibility, VisibilityOff } from "@mui/icons-material";
 
 const ChangePassword = () => {
     const [oldPassword, setOldPassword] = useState("");
@@ -16,6 +18,8 @@ const ChangePassword = () => {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [success, setSuccess] = useState<string | null>(null);
+    const [showOldPassword, setShowOldPassword] = useState(false);
+const [showNewPassword, setShowNewPassword] = useState(false);
 
 const handleConfirm = async () => {
     setError(null);
@@ -95,22 +99,46 @@ const handleConfirm = async () => {
                 {success && <Alert severity="success" sx={{ mb: 2 }}>{success}</Alert>}
 
                 <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
+                  <TextField
+    label="Old Password"
+    type={showOldPassword ? "text" : "password"}
+    size="small"
+    sx={{ width: "50%" }}
+    value={oldPassword}
+    onChange={(e) => setOldPassword(e.target.value)}
+    InputProps={{
+        endAdornment: (
+            <InputAdornment position="end">
+                <IconButton
+                    onClick={() => setShowOldPassword(!showOldPassword)}
+                    edge="end"
+                >
+                    {showOldPassword ? <VisibilityOff /> : <Visibility />}
+                </IconButton>
+            </InputAdornment>
+        ),
+    }}
+/>
                     <TextField
-                        label="Old Password"
-                        type="password"
-                        size="small"
-                        sx={{ width: "50%" }}
-                        value={oldPassword}
-                        onChange={(e) => setOldPassword(e.target.value)}
-                    />
-                    <TextField
-                        label="New Password"
-                        type="password"
-                        size="small"
-                        sx={{ width: "50%" }}
-                        value={newPassword}
-                        onChange={(e) => setNewPassword(e.target.value)}
-                    />
+    label="New Password"
+    type={showNewPassword ? "text" : "password"}
+    size="small"
+    sx={{ width: "50%" }}
+    value={newPassword}
+    onChange={(e) => setNewPassword(e.target.value)}
+    InputProps={{
+        endAdornment: (
+            <InputAdornment position="end">
+                <IconButton
+                    onClick={() => setShowNewPassword(!showNewPassword)}
+                    edge="end"
+                >
+                    {showNewPassword ? <VisibilityOff /> : <Visibility />}
+                </IconButton>
+            </InputAdornment>
+        ),
+    }}
+/>
                     <Box sx={{ textAlign: "left", mt: 1 }}>
                         <Button
                             variant="contained"

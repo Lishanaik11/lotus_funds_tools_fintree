@@ -16,7 +16,10 @@ import {
   updateBroker,
 } from "../controllers/registration.controller";
 
+
 const router = express.Router();
+
+console.log("🔥 registration.routes.ts LOADED");
 
 router.use((req, res, next) => {
   console.log("📍 REG ROUTER HIT:", req.method, req.url);

@@ -13,11 +13,18 @@ import telegramRoutes from "./routes/telegram.routes";
 //import { initTelegram } from "./telegramClient";
 
 const app = express();
+console.log("🔥 APP FILE LOADED");
 
 const allowedOrigins = [
   "https://ng52ddcn-5173.inc1.devtunnels.ms",
   "http://localhost:5173"
 ];
+app.use((req, res, next) => {
+  console.log("🔥 REQUEST HIT:", req.method, req.url);
+  next();
+});
+
+console.log("🔥 CHANGE PASSWORD ROUTE SHOULD EXIST");
 
 app.use(cors({
   origin: function (origin, callback) {
@@ -42,18 +49,19 @@ app.use("/uploads", express.static(path.join(__dirname, "../uploads")));
 app.use("/api/auth", authRoutes);
 
 //app.use("/api", authRoutes);
-app.use("/api", researchRoutes);
+//app.use("/api", researchRoutes);
+//app.use("/api/research", researchRoutes); 
 // app.use("/api", debugRoutes);
-app.use("/api/auth", authRoutes);
 //app.use("/api", debugRoutes);
 
 app.use("/api/broker", brokerRoutes);
 app.use("/uploads", express.static(path.join(process.cwd(), "uploads")));
+console.log("🔥 MOUNTING registrationRoutes");
 app.use("/api/registration", registrationRoutes);
 // app.use("/api", telegramRoutes);
 app.use("/api/telegram", telegramRoutes);
 //app.use("/api", telegramRoutes);
-app.use("/api/telegram", telegramRoutes);
+//app.use("/api/telegram", telegramRoutes);
 
 // app.use("/admin", adminRoutes);
 //app.use("/api", telegramRoutes);
@@ -63,6 +71,7 @@ app.use("/admin", adminRoutes);
 // app.get("/api/health", (_req, res) => {
 //   res.json({ status: "OK" });
 // });
+console.log("🔥 AUTH ROUTE MOUNTED");
 
 
 // const PORT = process.env.PORT || 5000;
@@ -80,6 +89,10 @@ async function startServer() {
 //   await initTelegram();
 // await initTelegram();
 // }
+
 // startServer();
+app.get("/check", (req, res) => {
+  res.send("APP WORKING");
+});
 
 export default app;

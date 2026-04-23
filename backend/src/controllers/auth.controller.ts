@@ -219,47 +219,48 @@ export const verifyOtp = async (req: Request, res: Response) => {
 /* ================= Login ================= */
 export const login = async (req: Request, res: Response) => {
   try {
-    const { loginId, password } = req.body;
+    let { loginId, password } = req.body;
 
-    console.log("LOGIN INPUT:", loginId, password);
+    // ✅ Normalize input
+    loginId = loginId.trim().toLowerCase();
+
+    console.log("LOGIN INPUT:", loginId);
 
     let user;
-    let source = "";
 
-    /* ================= CHECK ADMIN (USERNAME) ================= */
-    const adminRes = await pool.query(
-      `SELECT * FROM company_users WHERE username=$1`,
-      [loginId]
-    );
-
-    if (adminRes.rows.length > 0) {
-      user = adminRes.rows[0];
-      source = "company_users";
-    } else {
-      /* ================= CHECK USERS (EMAIL) ================= */
-      const userRes = await pool.query(
-        `SELECT * FROM users WHERE LOWER(email)=LOWER($1)`,
+    /* ================= ADMIN LOGIN (STRICT) ================= */
+    if (loginId === "admin") {
+      const adminRes = await pool.query(
+        `SELECT id, username, password_hash, role 
+         FROM company_users 
+         WHERE LOWER(username) = $1`,
         [loginId]
       );
 
-      if (userRes.rows.length > 0) {
-        user = userRes.rows[0];
-        source = "users";
+      if (adminRes.rows.length === 0) {
+        return res.status(400).json({ message: "Admin not found ❌" });
       }
-    }
 
-    /* ================= USER NOT FOUND ================= */
-    if (!user) {
-      console.log("❌ USER NOT FOUND");
-      return res.status(400).json({ message: "Invalid credentials ❌" });
-    }
+      user = adminRes.rows[0];
 
-    console.log("USER FOUND:", user.email || user.username);
-    console.log("Login from:", source);
+    } else {
+      /* ================= NORMAL USERS ================= */
+      const userRes = await pool.query(
+        `SELECT id, email, username, password_hash, role, status
+         FROM users 
+         WHERE LOWER(email) = $1`,
+        [loginId]
+      );
 
-    /* ================= STATUS CHECK ================= */
-    if (user.status && user.status.toLowerCase() !== "active") {
-      return res.status(403).json({ message: "Account is inactive" });
+      if (userRes.rows.length === 0) {
+        return res.status(400).json({ message: "Invalid credentials ❌" });
+      }
+
+      user = userRes.rows[0];
+
+      if (user.status.toLowerCase() !== "active") {
+        return res.status(403).json({ message: "Account inactive ❌" });
+      }
     }
 
     /* ================= PASSWORD CHECK ================= */
@@ -268,9 +269,7 @@ export const login = async (req: Request, res: Response) => {
     console.log("PASSWORD MATCH:", match);
 
     if (!match) {
-      return res.status(400).json({
-        message: `Incorrect password for ${user.role} account ❌`
-      });
+      return res.status(400).json({ message: "Invalid password ❌" });
     }
 
     /* ================= TOKEN ================= */
@@ -292,7 +291,6 @@ export const login = async (req: Request, res: Response) => {
     return res.status(500).json({ message: "Server error" });
   }
 };
-
 
 /* ================= GET ME ================= */
 export const getMe = async (req: AuthRequest, res: Response) => {
@@ -342,94 +340,52 @@ export const getMe = async (req: AuthRequest, res: Response) => {
 
 export const changeAdminPassword = async (req: AuthRequest, res: Response) => {
   try {
-    console.log("🔥 1. CHANGE PASSWORD API HIT");
-
     const { oldPassword, newPassword } = req.body;
 
-    console.log("📩 REQUEST BODY:", { oldPassword, newPassword });
-
     if (!oldPassword || !newPassword) {
-      console.log("❌ Missing fields");
       return res.status(400).json({ message: "All fields required" });
     }
 
-    // 🔥 DB CHECK
-    const dbInfo = await pool.query(`SELECT current_database(), current_user`);
-    console.log("🗄️ DB INFO:", dbInfo.rows[0]);
+    const adminId = req.user?.id;
 
-    // 🔥 FETCH ADMIN
-    const adminResult = await pool.query(
-      `SELECT id, username, password_hash 
+    if (!adminId) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+
+    const result = await pool.query(
+      `SELECT id, password_hash 
        FROM company_users 
-       WHERE username = $1`,
-      ["admin"]
+       WHERE id = $1`,
+      [adminId]
     );
 
-    console.log("🔍 ADMIN QUERY RESULT:", adminResult.rows);
-
-    if (adminResult.rows.length === 0) {
-      console.log("❌ ADMIN NOT FOUND IN DB");
+    if (result.rows.length === 0) {
       return res.status(404).json({ message: "Admin not found" });
     }
 
-    const admin = adminResult.rows[0];
+    const admin = result.rows[0];
 
-    console.log("👤 ADMIN FOUND:", {
-      id: admin.id,
-      username: admin.username,
-      hash: admin.password_hash
-    });
-
-    // 🔥 PASSWORD CHECK
     const isMatch = await bcrypt.compare(oldPassword, admin.password_hash);
 
-    console.log("🔐 OLD PASSWORD MATCH:", isMatch);
-
     if (!isMatch) {
-      console.log("❌ PASSWORD MISMATCH");
-      return res.status(400).json({
-        message: "Old password is incorrect"
-      });
+      return res.status(400).json({ message: "Old password incorrect ❌" });
     }
 
-    // 🔥 HASH NEW PASSWORD
     const hashedPassword = await bcrypt.hash(newPassword, 10);
 
-    console.log("🧂 NEW HASH GENERATED:", hashedPassword);
-
-    // 🔥 UPDATE QUERY
-    const updateResult = await pool.query(
+    await pool.query(
       `UPDATE company_users 
        SET password_hash = $1, updated_at = NOW()
-       WHERE username = $2`,
-      [hashedPassword, "admin"]
+       WHERE id = $2`,
+      [hashedPassword, adminId]
     );
-
-    console.log("📊 UPDATE RESULT ROWCOUNT:", updateResult.rowCount);
-
-    // 🔥 VERIFY AFTER UPDATE
-    const verify = await pool.query(
-      `SELECT username, password_hash 
-       FROM company_users 
-       WHERE username = 'admin'`
-    );
-
-    console.log("✅ DB AFTER UPDATE:", verify.rows[0]);
-
-    if (updateResult.rowCount === 0) {
-      console.log("❌ NO ROW UPDATED");
-      return res.status(500).json({
-        message: "Update failed - no row affected"
-      });
-    }
 
     return res.json({
-      success: true,
-      message: "Password updated successfully ✅"
+      message: "Password updated successfully ✅",
     });
 
   } catch (error) {
-    console.error("💥 ADMIN PASSWORD ERROR:", error);
+    console.error("CHANGE PASSWORD ERROR:", error);
     return res.status(500).json({ message: "Server error" });
   }
 };
