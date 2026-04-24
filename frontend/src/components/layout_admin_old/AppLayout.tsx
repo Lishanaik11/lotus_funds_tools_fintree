@@ -3,12 +3,11 @@ import { Outlet } from "react-router-dom";
 import { useState } from "react";
 import DashboardIcon from "@mui/icons-material/Dashboard";
 import PrivacyTipIcon from '@mui/icons-material/PrivacyTip';
-import SettingsIcon from '@mui/icons-material/Settings';
 // import CheckBoxIcon from "@mui/icons-material/CheckBox";
 import FolderIcon from "@mui/icons-material/Folder";
 import Header from "./Header";
-import Sidebar from "../components/page_Mainapp/Sidebar";
-import type { SidebarItem } from "../types/sidebar";
+import Sidebar from "../page_Mainapp/Sidebar";
+import type { SidebarItem } from "../../types/sidebar";
 
 const automationSidebarItems: SidebarItem[] = [
   {
@@ -25,11 +24,6 @@ const automationSidebarItems: SidebarItem[] = [
     label: "AdminApproval",
     path: "/admin/approval",
     icon: <PrivacyTipIcon sx={{ mr: 1.5 }} />,
-  },
-  {
-    label: "Settings",
-    path: "/admin/settings",
-    icon: <SettingsIcon sx={{ mr: 1.5 }} />,
   },
 ];
 

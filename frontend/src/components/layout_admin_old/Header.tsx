@@ -2,7 +2,7 @@ import { AppBar, Toolbar, Typography, Box, IconButton } from "@mui/material";
 import MenuIcon from "@mui/icons-material/Menu";
 import { useEffect, useMemo, useState } from "react";
 import { useLocation } from "react-router-dom";
-import type { SidebarItem } from "../types/sidebar";
+import type { SidebarItem } from "../../types/sidebar";
 
 interface HeaderProps {
   onMenuClick?: () => void;
@@ -19,12 +19,12 @@ const Header = ({ onMenuClick, items }: HeaderProps) => {
       location.pathname.toLowerCase().startsWith(item.path.toLowerCase())
     );
 
-    // If we are at just "/admin", default to Dashboard
-    if (!match && location.pathname.toLowerCase() === "/admin") {
-      return "Dashboard";
+    // If we are at just "/automation", default to Afternoon
+    if (!match && location.pathname.toLowerCase() === "/automation") {
+      return "Afternoon";
     }
 
-    return match?.label ?? "Admin";
+    return match?.label ?? "Automation";
   }, [items, location.pathname]);
 
   useEffect(() => {

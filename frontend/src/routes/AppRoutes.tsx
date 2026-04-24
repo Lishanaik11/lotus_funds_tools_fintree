@@ -4,58 +4,61 @@ import { Routes, Route, Navigate } from "react-router-dom";
 // --- Layouts (loaded eagerly — they wrap everything, no benefit from lazying) ---
 import AppLayout from "../components/layout/AppLayout";
 import AutomationLayout from "../components/layout_automation/AppLayout";
-import AdminLayout from "../layout_admin/AppLayout";
+import AdminLayout from "../components/layout_admin/AppLayout";
 import ClientLayout from "../components/layout_client/AppLayout";
 import ProtectedRoute from "../components/ProtectedRoute";
+import LoadingPage from "../common/LoadingPage";
 
 // --- Lazy: Auth & Public ---
-const LoginForm            = lazy(() => import("../common/LoginForm"));
-const LoginFormAdmin       = lazy(() => import("../common/LoginFormAdmin"));
-const Signup               = lazy(() => import("../pages/common/Signup"));
-const NewPassword          = lazy(() => import("../common/NewPassword"));
+const LoginForm = lazy(() => import("../common/LoginForm"));
+const LoginFormAdmin = lazy(() => import("../common/LoginFormAdmin"));
+const Signup = lazy(() => import("../pages/common/Signup"));
+const NewPassword = lazy(() => import("../common/NewPassword"));
 
 // --- Lazy: Registration ---
-const RegistrationPage     = lazy(() => import("../pages_registration/RegistrationPage"));
-const BrokerRegistration   = lazy(() => import("../pages_registration/BrokerRegistration"));
+const RegistrationPage = lazy(() => import("../pages_registration/RegistrationPage"));
+const BrokerRegistration = lazy(() => import("../pages_registration/BrokerRegistration"));
 
 // --- Lazy: Main (Employee / Broker) ---
-const Dashboard            = lazy(() => import("../pages/Dashboard"));
-const Performance          = lazy(() => import("../pages/Performance"));
-const Settings             = lazy(() => import("../pages/Settings"));
-const Recommendations      = lazy(() => import("../pages/Recomendation"));
-const EditPage             = lazy(() => import("../pages/EditPage"));
+const Dashboard = lazy(() => import("../pages/Dashboard"));
+const Performance = lazy(() => import("../pages/Performance"));
+const Settings = lazy(() => import("../pages/Settings"));
+const Recommendations = lazy(() => import("../pages/Recomendation"));
+const EditPage = lazy(() => import("../pages/EditPage"));
 
 // --- Lazy: Morning Report Tools ---
 const MorningReportBuilder = lazy(() => import("../tools/morning-report/MorningReportBuilder"));
-const MorningReport        = lazy(() => import("../tools/morning-report/MorningReport"));
-const Logotheme            = lazy(() => import("../tools/morning-report/Logotheme"));
-const Generator            = lazy(() => import("../tools/morning-report/Generator"));
+const MorningReport = lazy(() => import("../tools/morning-report/MorningReport"));
+const Logotheme = lazy(() => import("../tools/morning-report/Logotheme"));
+const Generator = lazy(() => import("../tools/morning-report/Generator"));
 
 // --- Lazy: Automation ---
-const Afternoon            = lazy(() => import("../pages_automation/Afternoon"));
-const Evening              = lazy(() => import("../pages_automation/Evening"));
-const Morning              = lazy(() => import("../pages_automation/Morning"));
-const Special              = lazy(() => import("../pages_automation/Special"));
-const Weekly               = lazy(() => import("../pages_automation/Weekly"));
-const ExceltoJSONTool      = lazy(() => import("../tools/ExceltoJSONtool").then(m => ({ default: m.ExceltoJSONTool })));
+const Afternoon = lazy(() => import("../pages_automation/Afternoon"));
+const Evening = lazy(() => import("../pages_automation/Evening"));
+const Morning = lazy(() => import("../pages_automation/Morning"));
+const Special = lazy(() => import("../pages_automation/Special"));
+const Weekly = lazy(() => import("../pages_automation/Weekly"));
+const ExceltoJSONTool = lazy(() => import("../tools/ExceltoJSONtool").then(m => ({ default: m.ExceltoJSONTool })));
 
 // --- Lazy: Admin ---
-const AdminDashboard       = lazy(() => import("../pages_admin/AdminDashboard"));
+const AdminDashboard = lazy(() => import("../pages_admin/AdminDashboard"));
 const AdminRecommendations = lazy(() => import("../pages_admin/AdminRecommendations"));
-const AdminApproval        = lazy(() => import("../pages_admin/AdminApproval"));
-const AdminSettings        = lazy(() => import("../pages_admin/AdminSettings"));
+const AdminApproval = lazy(() => import("../pages_admin/AdminApproval"));
+const AdminSettings = lazy(() => import("../pages_admin/AdminSettings"));
 
 // --- Lazy: Client ---
-const ClientDashboard      = lazy(() => import("../pages_client/Dashboard"));
-const ClientRecommendations= lazy(() => import("../pages_client/Recomendation"));
-const ClientPerformance    = lazy(() => import("../pages_client/Performance"));
-const ClientNotFound       = lazy(() => import("../pages_client/Notfound"));
+const ClientDashboard = lazy(() => import("../pages_client/Dashboard"));
+const ClientRecommendations = lazy(() => import("../pages_client/Recomendation"));
+const ClientPerformance = lazy(() => import("../pages_client/Performance"));
+const ClientNotFound = lazy(() => import("../pages_client/Notfound"));
 
 // --- Fallback UI shown while a lazy chunk is loading ---
 const PageLoader = () => (
-  <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100vh" }}>
-    <span>Loading…</span>
-  </div>
+  <LoadingPage
+    title="Loading"
+    subtitle="Checking your access..."
+    fullScreen
+  />
 );
 
 const AppRoutes = () => {
@@ -67,14 +70,14 @@ const AppRoutes = () => {
         <Route path="/set-password" element={<NewPassword />} />
 
         {/* Auth & Public */}
-        <Route path="/login"       element={<LoginForm />} />
+        <Route path="/login" element={<LoginForm />} />
         <Route path="/login-admin" element={<LoginFormAdmin />} />
-        <Route path="/signup"      element={<Signup />} />
+        <Route path="/signup" element={<Signup />} />
 
         {/* Registration */}
         <Route path="/registration">
-          <Route index          element={<RegistrationPage />} />
-          <Route path="broker"  element={<BrokerRegistration />} />
+          <Route index element={<RegistrationPage />} />
+          <Route path="broker" element={<BrokerRegistration />} />
         </Route>
 
         {/* 1. Main Layout — RESEARCH_ANALYST / BROKER */}
@@ -85,9 +88,9 @@ const AppRoutes = () => {
             </ProtectedRoute>
           }
         >
-          <Route path="/"               element={<Dashboard />} />
-          <Route path="/performance"    element={<Performance />} />
-          <Route path="/settings"       element={<Settings />} />
+          <Route path="/" element={<Dashboard />} />
+          <Route path="/performance" element={<Performance />} />
+          <Route path="/settings" element={<Settings />} />
           <Route
             path="/recommendations"
             element={
@@ -141,13 +144,13 @@ const AppRoutes = () => {
             </ProtectedRoute>
           }
         >
-          <Route index             element={<Navigate to="Afternoon" replace />} />
-          <Route path="Afternoon"  element={<Afternoon />} />
-          <Route path="Evening"    element={<Evening />} />
-          <Route path="Morning"    element={<Morning />} />
-          <Route path="Special"    element={<Special />} />
-          <Route path="Weekly"     element={<Weekly />} />
-          <Route path="ExcelTool"  element={<ExceltoJSONTool />} />
+          <Route index element={<Navigate to="Afternoon" replace />} />
+          <Route path="Afternoon" element={<Afternoon />} />
+          <Route path="Evening" element={<Evening />} />
+          <Route path="Morning" element={<Morning />} />
+          <Route path="Special" element={<Special />} />
+          <Route path="Weekly" element={<Weekly />} />
+          <Route path="ExcelTool" element={<ExceltoJSONTool />} />
         </Route>
 
         {/* 4. Admin Layout — ADMIN ONLY */}
@@ -159,12 +162,12 @@ const AppRoutes = () => {
             </ProtectedRoute>
           }
         >
-          <Route index                      element={<AdminDashboard />} />
-          <Route path="dashboard"           element={<AdminDashboard />} />
-          <Route path="recommendations"     element={<AdminRecommendations />} />
-          <Route path="approval"            element={<AdminApproval />} />
-          <Route path="settings"            element={<AdminSettings />} />
-          <Route path="edit/:type/:id"      element={<EditPage />} />
+          <Route index element={<AdminDashboard />} />
+          <Route path="dashboard" element={<AdminDashboard />} />
+          <Route path="recommendations" element={<AdminRecommendations />} />
+          <Route path="approval" element={<AdminApproval />} />
+          <Route path="settings" element={<AdminSettings />} />
+          <Route path="edit/:type/:id" element={<EditPage />} />
         </Route>
 
         {/* 5. Client Layout — CLIENT ONLY */}
@@ -176,11 +179,11 @@ const AppRoutes = () => {
             </ProtectedRoute>
           }
         >
-          <Route index                  element={<ClientDashboard />} />
-          <Route path="dashboard"       element={<ClientDashboard />} />
+          <Route index element={<ClientDashboard />} />
+          <Route path="dashboard" element={<ClientDashboard />} />
           <Route path="recommendations" element={<ClientRecommendations />} />
-          <Route path="performance"     element={<ClientPerformance />} />
-          <Route path="*"               element={<ClientNotFound />} />
+          <Route path="performance" element={<ClientPerformance />} />
+          <Route path="*" element={<ClientNotFound />} />
         </Route>
 
         {/* Catch-all — always last */}
