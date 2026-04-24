@@ -4,9 +4,10 @@ import { Routes, Route, Navigate } from "react-router-dom";
 // --- Layouts (loaded eagerly — they wrap everything, no benefit from lazying) ---
 import AppLayout from "../components/layout/AppLayout";
 import AutomationLayout from "../components/layout_automation/AppLayout";
-import AdminLayout from "../layout_admin/AppLayout";
+import AdminLayout from "../components/layout_admin/AppLayout";
 import ClientLayout from "../components/layout_client/AppLayout";
 import ProtectedRoute from "../components/ProtectedRoute";
+import LoadingPage from "../common/LoadingPage";
 
 // --- Lazy: Auth & Public ---
 const LoginForm = lazy(() => import("../common/LoginForm"));
@@ -56,9 +57,11 @@ const SubscriptionPage = lazy(() => import("../subscription/SubscriptionPage"));
 
 // --- Fallback UI shown while a lazy chunk is loading ---
 const PageLoader = () => (
-  <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100vh" }}>
-    <span>Loading…</span>
-  </div>
+  <LoadingPage
+    title="Loading"
+    subtitle="Checking your access..."
+    fullScreen
+  />
 );
 
 const AppRoutes = () => {
