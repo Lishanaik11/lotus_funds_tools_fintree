@@ -52,6 +52,9 @@ const ClientRecommendations = lazy(() => import("../pages_client/Recomendation")
 const ClientPerformance = lazy(() => import("../pages_client/Performance"));
 const ClientNotFound = lazy(() => import("../pages_client/Notfound"));
 
+// --- Lazy: Subscription ---
+const SubscriptionPage = lazy(() => import("../subscription/SubscriptionPage"));
+
 // --- Fallback UI shown while a lazy chunk is loading ---
 const PageLoader = () => (
   <LoadingPage
@@ -79,6 +82,9 @@ const AppRoutes = () => {
           <Route index element={<RegistrationPage />} />
           <Route path="broker" element={<BrokerRegistration />} />
         </Route>
+
+        {/* Subscription */}
+        <Route path="/subscription" element={<SubscriptionPage />} />
 
         {/* 1. Main Layout — RESEARCH_ANALYST / BROKER */}
         <Route

@@ -190,7 +190,6 @@ const Sidebar = ({ open = false, onClose, items }: SidebarProps) => {
               >
                 Log out
               </Typography>
-
             </Box>
           </Stack>
         </Box>
