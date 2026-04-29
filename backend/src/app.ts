@@ -16,7 +16,7 @@ const app = express();
 console.log("🔥 APP FILE LOADED");
 
 const allowedOrigins = [
-  "https://8x946q4k-5173.inc1.devtunnels.ms",
+  "https://44hwwl5q-5173.inc1.devtunnels.ms",
   "http://localhost:5173"
 ];
 app.use((req, res, next) => {
@@ -49,8 +49,8 @@ app.use("/uploads", express.static(path.join(__dirname, "../uploads")));
 app.use("/api/auth", authRoutes);
 
 //app.use("/api", authRoutes);
-//app.use("/api", researchRoutes);
-//app.use("/api/research", researchRoutes); 
+app.use("/api", researchRoutes);
+app.use("/api/research", researchRoutes); 
 // app.use("/api", debugRoutes);
 //app.use("/api", debugRoutes);
 
@@ -81,7 +81,7 @@ async function startServer() {
   //await initTelegram();
 
   //   app.listen(PORT, () => {
-  //     console.log(`🚀 Server running on port ${PORT}`);
+  //     console.log(🚀 Server running on port ${PORT});
   //   });
 }
 
