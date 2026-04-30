@@ -527,18 +527,35 @@ setParticipantUsername("");
         </Table>
       </TableContainer>
 
+      {/* Mobile backdrop */}
+      {selectedRA && (
+        <Box
+          onClick={closePanel}
+          sx={{
+            display: { xs: "block", sm: "none" },
+            position: "fixed",
+            inset: 0,
+            bgcolor: "rgba(0,0,0,0.4)",
+            zIndex: 1199,
+          }}
+        />
+      )}
+
       {/* SIDE PANEL */}
       {selectedRA && (
         <Paper
           elevation={4}
           sx={{
             position: "fixed",
-            right: 20,
-            top: 120,
-            width: 600,   // 👈 increased from 450 → 800
+            zIndex: 1200,
+            right: { xs: 0, sm: 20 },
+            top: { xs: "auto", sm: 120 },
+            bottom: { xs: 0, sm: "auto" },
+            left: { xs: 0, sm: "auto" },
+            width: { xs: "100%", sm: 600 },
             p: 3,
-            borderRadius: 2,
-            maxHeight: "calc(100vh - 140px)",
+            borderRadius: { xs: "16px 16px 0 0", sm: 2 },
+            maxHeight: { xs: "80vh", sm: "calc(100vh - 140px)" },
             overflowY: "auto",
           }}
         >

@@ -190,9 +190,11 @@ const AdminApproval = () => {
     load();
   }, []);
 
-  useEffect(() => {
-    setPage(1);
-  }, [searchQuery, filter]);
+useEffect(() => {
+  setPage(1);
+  setSelectedRA(null);
+  setSelectedBroker(null);
+}, [searchQuery, filter, brokerSearch, brokerFilter]);
 
   /* ================= STATUS COLOR ================= */
 
@@ -230,7 +232,20 @@ const AdminApproval = () => {
     page * ITEMS_PER_PAGE
   );
 
+  // BROKER FILTERING
+const filteredBrokerRows = brokerRows.filter((b) => {
+  const matchesFilter =
+    brokerFilter === "All" ||
+    b.status.toLowerCase() === brokerFilter.toLowerCase();
 
+  const query = brokerSearch.toLowerCase();
+
+  const matchesSearch =
+    b.name.toLowerCase().includes(query) ||
+    b.phone.includes(query);
+
+  return matchesFilter && matchesSearch;
+});
 
 const openFile = (file?: string | string[]) => {
   if (!file) return alert("File not uploaded");
@@ -440,20 +455,38 @@ const openFile = (file?: string | string[]) => {
 
       </TableContainer>
 
+{/* Mobile backdrop for RA panel */}
+{selectedRA && (
+  <Box
+    onClick={() => setSelectedRA(null)}
+    sx={{
+      display: { xs: "block", sm: "none" },
+      position: "fixed",
+      inset: 0,
+      bgcolor: "rgba(0,0,0,0.4)",
+      zIndex: 1199,
+    }}
+  />
+)}
+
       {/* SIDE PANEL */}
 
       {selectedRA && (
 
         <Paper
           elevation={4}
-          sx={{
-            position: "fixed",
-            right: 20,
-            top: 120,
-            width: 330,
-            p: 2,
-            borderRadius: 2,
-            zIndex: 1200,
+          sx={{ 
+  position: "fixed",
+  zIndex: 1200,
+  right: { xs: 0, sm: 20 },
+  top: { xs: "auto", sm: 120 },
+  bottom: { xs: 0, sm: "auto" },
+  left: { xs: 0, sm: "auto" },
+  width: { xs: "100%", sm: 330 },
+  p: 3,
+  borderRadius: { xs: "16px 16px 0 0", sm: 2 },
+  maxHeight: { xs: "80vh", sm: "calc(100vh - 140px)" },
+  overflowY: "auto",
           }}
         >
 
@@ -630,12 +663,7 @@ const openFile = (file?: string | string[]) => {
               </TableRow>
             </TableHead>
             <TableBody>
-              {brokerRows
-                .filter(b =>
-                  b.name.toLowerCase().includes(brokerSearch.toLowerCase()) ||
-                  b.phone.includes(brokerSearch)
-                )
-                .map((broker) => (
+{filteredBrokerRows.map((broker) => (
                   <TableRow key={broker.id}>
                     <TableCell>{broker.name}</TableCell>
                     <TableCell>{broker.phone}</TableCell>
@@ -665,18 +693,37 @@ const openFile = (file?: string | string[]) => {
         </TableContainer>
       </Box>
 
+
+{/* Mobile backdrop for Broker panel */}
+{selectedBroker && (
+  <Box
+    onClick={() => setSelectedBroker(null)}
+    sx={{
+      display: { xs: "block", sm: "none" },
+      position: "fixed",
+      inset: 0,
+      bgcolor: "rgba(0,0,0,0.4)",
+      zIndex: 1199,
+    }}
+  />
+)}
+
       {/* BROKER SIDE PANEL */}
       {selectedBroker && (
         <Paper
           elevation={4}
           sx={{
-            position: "fixed",
-            right: 20,
-            top: 120,
-            width: 330,
-            p: 2,
-            borderRadius: 2,
-            zIndex: 1000
+  position: "fixed",
+  zIndex: 1200,
+  right: { xs: 0, sm: 20 },
+  top: { xs: "auto", sm: 120 },
+  bottom: { xs: 0, sm: "auto" },
+  left: { xs: 0, sm: "auto" },
+  width: { xs: "100%", sm: 330 },
+  p: 3,
+  borderRadius: { xs: "16px 16px 0 0", sm: 2 },
+  maxHeight: { xs: "80vh", sm: "calc(100vh - 140px)" },
+  overflowY: "auto",
           }}
         >
           <Button
